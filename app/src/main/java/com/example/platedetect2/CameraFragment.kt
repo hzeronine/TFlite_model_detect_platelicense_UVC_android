@@ -21,11 +21,14 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
-import com.example.platedetect2.Module.MyUSBMonitor
 import com.example.platedetect2.databinding.FragmentCameraBinding
+import com.example.platedetect2.utils.MyCameraFilter
+import com.example.platedetect2.utils.ObjectDetectorHelper
+import com.example.platedetect2.utils.ProgressHelper
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.serenegiant.usb.USBMonitor
 import org.tensorflow.lite.task.vision.detector.Detection
 import java.util.LinkedList
 import java.util.concurrent.ExecutorService
@@ -52,7 +55,7 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
     private var resultText: String? = "";
     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     var cameraFilterS : MyCameraFilter? = null
-    var myUSBMonitor: MyUSBMonitor? = null
+    var myUSBMonitor: USBMonitor? = null
 
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
@@ -91,10 +94,6 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         objectDetectorHelper = ObjectDetectorHelper(
             context = requireContext(),
             objectDetectorListener = this)
-        myUSBMonitor = MyUSBMonitor(context, MyUSBMonitor.resultCallBack {
-            Toast.makeText(context, "bat dong bo", Toast.LENGTH_SHORT).show()
-            setUpCamera()
-        })
         // Initialize our background executor
         cameraExecutor = Executors.newSingleThreadExecutor()
 
@@ -175,7 +174,6 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
 
     override fun onStart() {
         super.onStart()
-        myUSBMonitor!!.signin()
     }
 
     private fun setUpCamera() {

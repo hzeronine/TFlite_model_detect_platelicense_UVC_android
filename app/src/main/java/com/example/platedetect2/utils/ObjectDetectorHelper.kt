@@ -1,4 +1,4 @@
-package com.example.platedetect2
+package com.example.platedetect2.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.SystemClock

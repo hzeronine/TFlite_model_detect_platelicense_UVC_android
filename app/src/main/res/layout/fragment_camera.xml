@@ -26,7 +26,7 @@
         android:layout_height="match_parent"
         app:scaleType="fillStart"/>
 
-    <com.example.platedetect2.OverlayView
+    <com.example.platedetect2.layout.OverlayView
         android:id="@+id/overlay"
         android:layout_height="match_parent"
         android:layout_width="match_parent" />

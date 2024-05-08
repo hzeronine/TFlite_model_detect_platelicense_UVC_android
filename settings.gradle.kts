@@ -24,6 +24,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PlateDetect2"
-include("app",":libusbcamera",":libusbcamera2",":libuvccamera")
+include("app", ":libuvccamera", ":usbSerialForAndroid")
 
  

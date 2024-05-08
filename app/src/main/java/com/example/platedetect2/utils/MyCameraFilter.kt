@@ -1,4 +1,4 @@
-package com.example.platedetect2
+package com.example.platedetect2.utils
 
 import android.annotation.SuppressLint
 import android.util.Log

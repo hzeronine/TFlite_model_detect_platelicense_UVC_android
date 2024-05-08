@@ -1,4 +1,4 @@
-package com.example.platedetect2;
+package com.example.platedetect2.utils;
 
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,6 +22,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.constraintlayout.utils.widget.ImageFilterView;
 
+import com.example.platedetect2.R;
 import com.google.zxing.BarcodeFormat;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 

@@ -1,4 +1,4 @@
-package com.example.platedetect2
+package com.example.platedetect2.layout
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import androidx.core.content.ContextCompat
+import com.example.platedetect2.R
 import java.util.LinkedList
 import kotlin.math.max
 import org.tensorflow.lite.task.vision.detector.Detection

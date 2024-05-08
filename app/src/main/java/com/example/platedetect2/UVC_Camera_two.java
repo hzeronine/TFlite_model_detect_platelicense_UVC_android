@@ -11,6 +11,8 @@ import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 
 import com.example.platedetect2.utils.NV21ToBitmap;
+import com.example.platedetect2.utils.ObjectDetectorHelper;
+import com.example.platedetect2.utils.ProgressHelper;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
@@ -30,7 +32,6 @@ import android.Manifest;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import org.tensorflow.lite.task.vision.detector.Detection;
@@ -39,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -142,7 +142,9 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
 
         @Override
         public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {
+            Log.d("deviceID",device.getVendorId()+"");
             mCameraHelper.openCamera();
+
         }
 
         @Override
