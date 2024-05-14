@@ -275,6 +275,7 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                                 /////////
                                 Intent intent = new Intent(getApplicationContext(), ScanQR.class);
                                 startActivity(intent);
+                                finish();
                             }
                         });
 

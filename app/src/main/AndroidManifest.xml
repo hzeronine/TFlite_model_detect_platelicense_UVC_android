@@ -48,15 +48,13 @@
             android:name=".MainActivity"
             android:exported="true" />
         <activity
-            android:name=".ScanQR.ScanQR"
+            android:name=".UVC_Camera_two"
             android:exported="true" />
         <activity
-            android:name=".UVC_Camera_two"
+            android:name=".ScanQR.ScanQR"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 

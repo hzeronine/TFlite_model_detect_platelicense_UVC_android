@@ -22,6 +22,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.platedetect2.R;
+import com.example.platedetect2.ScanQR.ApiService;
+import com.example.platedetect2.ScanQR.MD5Encoder;
+import com.example.platedetect2.ScanQR.TokenResponse;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -34,10 +37,10 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import retrofit2.Call;
-import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.Callback;
 
 
 public class ScanQR extends AppCompatActivity {
@@ -62,7 +65,7 @@ public class ScanQR extends AppCompatActivity {
         }
 
 
-        keyAuthen(key);
+
 
         Intent intent = getIntent();
         if (intent != null) {
@@ -103,7 +106,7 @@ public class ScanQR extends AppCompatActivity {
             Toast.makeText(ScanQR.this,"Permissions Denied", Toast.LENGTH_SHORT).show();
         }
     }
-
+    boolean flag = false;
     private void bindImageAnalysis(ProcessCameraProvider processCameraProvider) {
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setTargetResolution(new Size(1280, 720))
                 .setBackpressureStrategy (ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
@@ -119,58 +122,74 @@ public class ScanQR extends AppCompatActivity {
                     results.addOnSuccessListener(new OnSuccessListener<List<Barcode>>() {
                         @Override
                         public void onSuccess(List<Barcode> barcodes) {
+//                            Toast.makeText(getApplicationContext(), flag + "", Toast.LENGTH_SHORT).show();;
                             for (Barcode barcode : barcodes) {
                                 final String getValue = barcode.getRawValue();
-                                qrCodeTxt.setText(getValue);
+                                //qrCodeTxt.setText(getValue);
+                                keyAuthen(getValue);
                             }
                             image.close();
                             mediaImage.close();
+
+
                         }
                     });
                 }
             }
         });
         Preview preview = new Preview.Builder().build();
-        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_FRONT).build();
+        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_BACK).build();
         preview.setSurfaceProvider (previewView.getSurfaceProvider());
         processCameraProvider.bindToLifecycle (this, cameraSelector, imageAnalysis, preview);
     }
+    long timeLimited;
+    long currentTimeMillis;
+    MD5Encoder md5Encoder = new MD5Encoder();
 
+    String uid_QR;
+    long millis_QR;
+    String md5Enc_QR;
     String key = "4:1715328016773:2ec3799b7582e481c022e224c1825879";
     String token_user;
     private void keyAuthen(String keyQR) {
-
+        if(flag == true)
+            return;
         String[] parts = splitString(keyQR);
 
-        String uid_QR = parts[0];
-        long millis_QR = Long.parseLong(parts[1]);
-        String md5Enc_QR = parts[2];
+        uid_QR = parts[0];
+        millis_QR = Long.parseLong(parts[1]);
+        md5Enc_QR = parts[2];
 
         System.out.println("UID: " + uid_QR);
         System.out.println("Millis: " + millis_QR);
         System.out.println("MD5Enc: " + md5Enc_QR);
 
-        MD5Encoder md5Encoder = new MD5Encoder();
 
-        long currentTimeMillis = System.currentTimeMillis();
-        long timeLimited = currentTimeMillis - millis_QR;
+        currentTimeMillis = System.currentTimeMillis();
+        timeLimited = currentTimeMillis - millis_QR;
         if(timeLimited < 65000) {
             Log.d("Test", "Mã QR còn hạn sử dụng");
+            flag = true;
             callApiGetToken(uid_QR);
-            String md5Enc_check = md5Encoder.encodeToMD5(token_user + millis_QR);
-            if(md5Enc_QR.contains(md5Enc_check)) {
-                Log.d("Test", md5Enc_QR + "\n" + md5Enc_check + "\n" + "Xác nhận trùng mã khóa");
-                qrCodeTxt.setText("Xác nhận trùng mã khóa");
-
-            } else {
-                Log.d("Test", md5Enc_QR + "\n" + md5Enc_check);
-                Log.d("Test", "Xác nhận khóa thất bại");
-                qrCodeTxt.setText("Xác nhận khóa thất bại");
-            }
 
         } else {
             Log.d("Test", "Mã QR đã hết hạn sử dụng");
             qrCodeTxt.setText("Mã QR đã hết hạn sử dụng");
+        }
+    }
+
+    private void extracted(long millis_QR, String md5Enc_QR, MD5Encoder md5Encoder) {
+        String md5Enc_check = md5Encoder.encodeToMD5(token_user + millis_QR);
+        Log.d("Test", "md5Enc_check: " + token_user + " : " + millis_QR);
+
+        if(md5Enc_QR.equals(md5Enc_check)) {
+            Log.d("Test", md5Enc_QR + "\n" + md5Enc_check + "\n" + "Xác nhận trùng mã khóa");
+            qrCodeTxt.setText("Xác nhận trùng mã khóa");
+
+        } else {
+            Log.d("Test", md5Enc_QR + "\n" + md5Enc_check);
+            Log.d("Test", "Xác nhận khóa thất bại");
+            qrCodeTxt.setText("Xác nhận khóa thất bại");
         }
     }
 
@@ -198,12 +217,18 @@ public class ScanQR extends AppCompatActivity {
                     if (tokenResponse != null) {
                         String token = tokenResponse.getToken();
                         token_user = token;
+                        extracted(millis_QR, md5Enc_QR, md5Encoder);
+                        flag = false;
                         Toast.makeText(ScanQR.this, "Token: " + token, Toast.LENGTH_SHORT).show();
+
                     }
                 } else {
                     // Xử lý khi không nhận được kết quả thành công
                     Toast.makeText(ScanQR.this, "Lỗi khi gọi API", Toast.LENGTH_SHORT).show();
                 }
+
+
+
             }
 
             @Override
