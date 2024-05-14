@@ -24,7 +24,7 @@ import androidx.navigation.Navigation
 import com.example.platedetect2.databinding.FragmentCameraBinding
 import com.example.platedetect2.utils.MyCameraFilter
 import com.example.platedetect2.utils.ObjectDetectorHelper
-import com.example.platedetect2.utils.ProgressHelper
+import com.example.platedetect2.Dialog.ProgressHelper
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions

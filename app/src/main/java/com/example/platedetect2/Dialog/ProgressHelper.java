@@ -1,4 +1,4 @@
-package com.example.platedetect2.utils;
+package com.example.platedetect2.Dialog;
 
 import android.content.Context;
 import android.content.DialogInterface;

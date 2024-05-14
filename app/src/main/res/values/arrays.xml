@@ -11,4 +11,8 @@
         <item>event: SerialInputOutputManager.onNewData()</item>
         <item>direct: UsbSerialPort.read()</item>
     </string-array>
+    <string-array name="selection_device">
+        <item>Barrier (Arduino)</item>
+        <item>Camera Device (UVC)</item>
+    </string-array>
 </resources>

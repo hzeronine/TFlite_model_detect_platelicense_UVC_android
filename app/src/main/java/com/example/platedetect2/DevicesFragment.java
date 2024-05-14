@@ -2,11 +2,14 @@ package com.example.platedetect2;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.ListFragment;
 import android.view.Menu;
@@ -19,6 +22,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.platedetect2.Dialog.AlterDialogSelection;
 import com.example.platedetect2.utils.CustomProber;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -148,20 +152,30 @@ public class DevicesFragment extends ListFragment {
 
     @Override
     public void onListItemClick(@NonNull ListView l, @NonNull View v, int position, long id) {
-        ListItem item = listItems.get(position-1);
-        if(item.driver == null) {
-            Toast.makeText(getActivity(), "no driver", Toast.LENGTH_SHORT).show();
-        } else {
-            Bundle args = new Bundle();
-            args.putInt("device", item.device.getDeviceId());
-            args.putInt("port", item.port);
-            args.putInt("baud", baudRate);
-            args.putBoolean("withIoManager", withIoManager);
-            Fragment fragment = new ArduinoConnectionActivity();
-            fragment.setArguments(args);
-            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
-                    .addToBackStack(null).commit();
-        }
+//        ListItem item = listItems.get(position-1);
+//        if(item.driver == null) {
+//            Toast.makeText(getActivity(), "no driver", Toast.LENGTH_SHORT).show();
+//        } else {
+//            Bundle args = new Bundle();
+//            args.putInt("device", item.device.getDeviceId());
+//            args.putInt("port", item.port);
+//            args.putInt("baud", baudRate);
+//            args.putBoolean("withIoManager", withIoManager);
+//            Fragment fragment = new ArduinoConnectionActivity();
+//            fragment.setArguments(args);
+//            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
+//                    .addToBackStack(null).commit();
+//        }
+        DialogFragment dialogFragment = new AlterDialogSelection();
+        (dialogFragment).show(getActivity().getSupportFragmentManager(), "DeviceSelection");
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == 1101){
+            if(resultCode == 1){
+
+            }
+        }
+    }
 }
