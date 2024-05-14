@@ -30,4 +30,18 @@
     <dimen name="bottom_sheet_spinner_model_min_width">240dp</dimen>
 
     <integer name="bottom_sheet_control_text_min_ems">3</integer>
+
+    <dimen name="size_box">60dp</dimen>
+    <dimen name="margin_mini">5dp</dimen>
+    <dimen name="margin_small">10dp</dimen>
+    <dimen name="margin_mid">20dp</dimen>
+    <dimen name="margin_big">30dp</dimen>
+
+
+
+
+    <dimen name="text_size_h1">30sp</dimen>
+    <dimen name="text_size_h2">22sp</dimen>
+    <dimen name="text_size_h3">18sp</dimen>
+    <dimen name="text_size_h4">13sp</dimen>
 </resources>

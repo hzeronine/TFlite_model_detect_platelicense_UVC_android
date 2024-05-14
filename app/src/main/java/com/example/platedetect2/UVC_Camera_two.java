@@ -5,11 +5,13 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.utils.widget.ImageFilterView;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 
+import com.example.platedetect2.ScanQR.ScanQR;
 import com.example.platedetect2.utils.NV21ToBitmap;
 import com.example.platedetect2.utils.ObjectDetectorHelper;
 import com.example.platedetect2.utils.ProgressHelper;
@@ -269,6 +271,10 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                             @Override
                             public void run() {
                                 textvip.setText(resultText);
+
+                                /////////
+                                Intent intent = new Intent(getApplicationContext(), ScanQR.class);
+                                startActivity(intent);
                             }
                         });
 

@@ -38,4 +38,6 @@
     </string-array>
 
     <string name="devices" translatable="false">USB Devices</string>
+
+    <string name="google_sign_in_button">Google Sign-in Button</string>
 </resources>
