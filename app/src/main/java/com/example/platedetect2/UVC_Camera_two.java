@@ -5,16 +5,25 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.utils.widget.ImageFilterView;
 
+<<<<<<< HEAD
 import android.content.Intent;
+=======
+import android.content.Context;
+>>>>>>> master
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 
+<<<<<<< HEAD
 import com.example.platedetect2.ScanQR.ScanQR;
+=======
+import com.example.platedetect2.utils.DeviceListControl;
+>>>>>>> master
 import com.example.platedetect2.utils.NV21ToBitmap;
 import com.example.platedetect2.utils.ObjectDetectorHelper;
-import com.example.platedetect2.utils.ProgressHelper;
+import com.example.platedetect2.Dialog.ProgressHelper;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
@@ -36,6 +45,7 @@ import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import org.tensorflow.lite.task.vision.detector.Detection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -55,6 +65,7 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     ImageFilterView imageCropView;
     TextView textvip;
     TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+    DeviceListControl instance = DeviceListControl.getInstance();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -139,7 +150,8 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     private ICameraHelper.StateCallback mStateListener = new ICameraHelper.StateCallback() {
         @Override
         public void onAttach(UsbDevice device) {
-            mCameraHelper.selectDevice(device);
+            if(instance.FindCameraDevice(device.getVendorId()))
+                mCameraHelper.selectDevice(device);
         }
 
         @Override
@@ -160,8 +172,8 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                     }
             mCameraHelper.addSurface(mCameraView.getHolder().getSurface(), false);
             if(mCameraHelper.isCameraOpened()) {
-                        mCameraHelper.setFrameCallback(new IFrameCallback() {
-                            @Override
+                mCameraHelper.setFrameCallback(new IFrameCallback() {
+                    @Override
                     public void onFrame(ByteBuffer frame) {
 
                         byte[] nv21 = new byte[frame.remaining()];
