@@ -22,14 +22,14 @@ import com.serenegiant.usb.Size;
 import com.serenegiant.usb.UVCControl;
 import com.serenegiant.usb.UVCParam;
 import com.serenegiant.utils.UVCUtils;
-import com.serenegiant.uvccamera.BuildConfig;
+
 
 import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.WeakHashMap;
 
 public class CameraHelper implements ICameraHelper {
-    private static final boolean DEBUG = BuildConfig.DEBUG;
+    private static final boolean DEBUG = false;
     private static final String TAG = CameraHelper.class.getSimpleName();
 
     protected final WeakReference<Context> mWeakContext;

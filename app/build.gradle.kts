@@ -118,8 +118,9 @@ dependencies {
 //    implementation(files("libs/libusbcommon-v4.1.1.aar"))
 //    implementation(files("libs/common-8.9.5.aar"))
 
-    implementation("com.gitee.yunianvh:rtsp-rtmp-stream-demo:usb-stream-1.3.21")
-    implementation("com.herohan:UVCAndroid:1.0.5")
+//    implementation("com.gitee.yunianvh:rtsp-rtmp-stream-demo:usb-stream-1.3.21")
+//    implementation("com.herohan:UVCAndroid:1.0.5")
     implementation("com.github.getActivity:XXPermissions:13.5")
-//    implementation(project(":libusbcamera2"))
+    implementation(project(":usbSerialForAndroid"))
+    implementation(project(":libuvccamera"))
 }

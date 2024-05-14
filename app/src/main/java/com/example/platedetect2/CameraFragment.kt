@@ -65,7 +65,7 @@ class CameraFragment : Fragment(), ObjectDetectorHelper.DetectorListener {
         // Make sure that all permissions are still present, since the
         // user could have removed them while the app was in paused state.
         if (!PermissionsFragment.hasPermissions(requireContext())) {
-            Navigation.findNavController(requireActivity(), R.id.fragment_container)
+            Navigation.findNavController(requireActivity(), R.id.fragment)
                 .navigate(CameraFragmentDirections.actionCameraToPermissions())
         }
     }

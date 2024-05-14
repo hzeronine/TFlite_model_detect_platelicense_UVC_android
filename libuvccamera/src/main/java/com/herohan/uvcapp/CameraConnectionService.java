@@ -19,7 +19,6 @@ import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 import com.serenegiant.usb.UVCControl;
 import com.serenegiant.usb.UVCParam;
 import com.serenegiant.utils.UVCUtils;
-import com.serenegiant.uvccamera.BuildConfig;
 import com.serenegiant.uvccamera.R;
 
 import java.lang.ref.WeakReference;
@@ -27,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 
 class CameraConnectionService {
-    private static final boolean DEBUG = BuildConfig.DEBUG;
+    private static final boolean DEBUG = false;
     private static final String TAG = CameraConnectionService.class.getSimpleName();
 
     private static volatile CameraConnectionService mInstance;

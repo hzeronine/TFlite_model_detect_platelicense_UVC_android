@@ -122,7 +122,7 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     private IFrameCallback frameCallback = new IFrameCallback() {
         @Override
         public void onFrame(ByteBuffer frame) {
-            Toast.makeText(getApplicationContext(),"denday",Toast.LENGTH_LONG).show();
+//            Toast.makeText(getApplicationContext(),"denday",Toast.LENGTH_LONG).show();
 //            imageCropView.setImageBitmap(bitmap);
             singleThreadExecutor.execute(new Runnable() {
                 @Override
@@ -150,16 +150,16 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
         @Override
         public void onCameraOpen(UsbDevice device) {
             mCameraHelper.startPreview();
-            Size size = mCameraHelper.getPreviewSize();
+                    Size size = mCameraHelper.getPreviewSize();
             if(size != null){
-                int width = size.width;
-                int height = size.height;
-                mCameraView.setAspectRatio(width,height);
-            }
+                        int width = size.width;
+                        int height = size.height;
+                        mCameraView.setAspectRatio(width,height);
+                    }
             mCameraHelper.addSurface(mCameraView.getHolder().getSurface(), false);
             if(mCameraHelper.isCameraOpened()) {
-                mCameraHelper.setFrameCallback(new IFrameCallback() {
-                    @Override
+                        mCameraHelper.setFrameCallback(new IFrameCallback() {
+                            @Override
                     public void onFrame(ByteBuffer frame) {
 
                         byte[] nv21 = new byte[frame.remaining()];
@@ -200,7 +200,6 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
         }
     };
     private void callCallBack() {
-        mCameraHelper.setFrameCallback(frameCallback, UVCCamera.PIXEL_FORMAT_RGB);
     }
     /**
      * this is API function after detected
