@@ -1,14 +1,18 @@
 package com.example.platedetect2;
 
+
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.ListFragment;
@@ -24,6 +28,8 @@ import android.widget.Toast;
 
 import com.example.platedetect2.Dialog.AlterDialogSelection;
 import com.example.platedetect2.utils.CustomProber;
+import com.example.platedetect2.utils.DeviceListControl;
+import com.example.platedetect2.utils.IRHelper;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
@@ -48,7 +54,19 @@ public class DevicesFragment extends ListFragment {
     private ArrayAdapter<ListItem> listAdapter;
     private int baudRate = 19200;
     private boolean withIoManager = true;
+    private DeviceListControl instance = DeviceListControl.getInstance();
 
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(intent.getAction())) {
+                refresh();
+            }
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(intent.getAction())){
+                refresh();
+            }
+        }
+    };
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,9 +110,19 @@ public class DevicesFragment extends ListFragment {
     }
 
     @Override
+    public void onStop() {
+        super.onStop();
+        getActivity().unregisterReceiver(broadcastReceiver);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         refresh();
+        IntentFilter intentFilter = new IntentFilter(IRHelper.INTENT_ACTION_GRANT_USB);
+        intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        intentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        getActivity().registerReceiver( broadcastReceiver, intentFilter);
     }
 
     @Override
@@ -125,6 +153,23 @@ public class DevicesFragment extends ListFragment {
             });
             builder.create().show();
             return true;
+        } else if (id ==R.id.start) {
+//            if(instance.getCameraDevice() == null)
+//            {
+//              Toast.makeText(getActivity(),"Connect Camera Device First!", Toast.LENGTH_SHORT).show();
+//              return true;
+//            } else if(instance.getCameraDevice().size() <= 0)
+//            {
+//                Toast.makeText(getActivity(),"Connect Camera Device First!", Toast.LENGTH_SHORT).show();
+//                return true;
+//            }
+//            Intent intent = new Intent(getContext(), UVC_Camera_two.class);
+//            startActivity(intent);
+//            getActivity().finish();
+            Fragment fragment = new ArduinoConnectionActivity();
+            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
+                    .addToBackStack(null).commit();
+            return true;
         } else {
             return super.onOptionsItemSelected(item);
         }
@@ -149,7 +194,7 @@ public class DevicesFragment extends ListFragment {
         }
         listAdapter.notifyDataSetChanged();
     }
-
+    int mPosition = -1;
     @Override
     public void onListItemClick(@NonNull ListView l, @NonNull View v, int position, long id) {
 //        ListItem item = listItems.get(position-1);
@@ -166,16 +211,29 @@ public class DevicesFragment extends ListFragment {
 //            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
 //                    .addToBackStack(null).commit();
 //        }
+        mPosition = position-1;
         DialogFragment dialogFragment = new AlterDialogSelection();
-        (dialogFragment).show(getActivity().getSupportFragmentManager(), "DeviceSelection");
+        dialogFragment.show(getChildFragmentManager(), "DeviceSelection");
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        Toast.makeText(getActivity(),"arduino",Toast.LENGTH_SHORT).show();
         if (requestCode == 1101){
-            if(resultCode == 1){
+            ListItem newDataItem = listItems.get(mPosition);
+            DeviceListControl.ModelDevice ModelData =
+                    new DeviceListControl.ModelDevice(newDataItem.device,
+                            newDataItem.device.getVendorId(), newDataItem.port, newDataItem.driver);
 
+            if(resultCode == 0){
+                Toast.makeText(getActivity(),"arduino " + mPosition,Toast.LENGTH_SHORT).show();
+                instance.addNewArduinoDevice(ModelData);
             }
+            else if(resultCode == 1){
+                Toast.makeText(getActivity(),"camera "+ mPosition,Toast.LENGTH_SHORT).show();
+                instance.addNewCameraDevice(ModelData);
+            }
+
         }
     }
 }

@@ -33,6 +33,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.platedetect2.utils.CustomProber;
 import com.example.platedetect2.utils.IRBytesStored;
+import com.example.platedetect2.utils.IRHelper;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -45,37 +46,17 @@ import java.util.EnumSet;
 
 
 public class ArduinoConnectionActivity extends Fragment implements SerialInputOutputManager.Listener{
-    private enum UsbPermission { Unknown, Requested, Granted, Denied }
 
-    private static final String INTENT_ACTION_GRANT_USB =  "com.example.platedetect2.GRANT_USB";
-    private static final int WRITE_WAIT_MILLIS = 2000;
-    private static final int READ_WAIT_MILLIS = 2000;
+
     IRBytesStored instance = IRBytesStored.getInstance();
-    String Command;
-    private int deviceId, portNum, baudRate;
-    private boolean withIoManager;
 
-    private final BroadcastReceiver broadcastReceiver;
     private final Handler mainLooper;
     private TextView receiveText;
-    private ControlLines controlLines;
+    private IRHelper.aControlLines controlLines;
 
-    private SerialInputOutputManager usbIoManager;
-    private UsbSerialPort usbSerialPort;
-    private UsbPermission usbPermission = UsbPermission.Unknown;
-    private boolean connected = false;
+    IRHelper instanceIRHelper;
 
     public ArduinoConnectionActivity() {
-        broadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if(INTENT_ACTION_GRANT_USB.equals(intent.getAction())) {
-                    usbPermission = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
-                            ? UsbPermission.Granted : UsbPermission.Denied;
-                    connect();
-                }
-            }
-        };
         mainLooper = new Handler(Looper.getMainLooper());
     }
 
@@ -87,36 +68,32 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         setRetainInstance(true);
-        deviceId = getArguments().getInt("device");
-        portNum = getArguments().getInt("port");
-        baudRate = getArguments().getInt("baud");
-        withIoManager = getArguments().getBoolean("withIoManager");
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        ContextCompat.registerReceiver(getActivity(), broadcastReceiver, new IntentFilter(INTENT_ACTION_GRANT_USB), ContextCompat.RECEIVER_NOT_EXPORTED);
+        instanceIRHelper.register();
     }
 
     @Override
     public void onStop() {
-        getActivity().unregisterReceiver(broadcastReceiver);
+        instanceIRHelper.unregister();
         super.onStop();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if(!connected && (usbPermission == UsbPermission.Unknown || usbPermission == UsbPermission.Granted))
-            mainLooper.post(this::connect);
+        if(!instanceIRHelper.isConnected() && (instanceIRHelper.getUsbPermission() == IRHelper.UsbPermission.Unknown || instanceIRHelper.getUsbPermission()  == IRHelper.UsbPermission.Granted))
+            instanceIRHelper.HandlerPost();
     }
 
     @Override
     public void onPause() {
-        if(connected) {
-            status("disconnected");
-            disconnect();
+        if(instanceIRHelper.isConnected()) {
+            instanceIRHelper.status("disconnected");
+            instanceIRHelper.disconnect();
         }
         super.onPause();
     }
@@ -130,15 +107,17 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
         receiveText = view.findViewById(R.id.receive_text);                          // TextView performance decreases with number of spans
         receiveText.setTextColor(getResources().getColor(R.color.colorRecieveText)); // set as default color to reduce number of spans
         receiveText.setMovementMethod(ScrollingMovementMethod.getInstance());
+        instanceIRHelper = IRHelper.getNewInstance(getActivity(),this);
         TextView sendText = view.findViewById(R.id.send_text);
         View sendBtn = view.findViewById(R.id.send_btn);
         sendBtn.setOnClickListener(v ->{
-            Command = sendText.getText().toString();
-            send(Command);
+            instanceIRHelper.Command = sendText.getText().toString();
+            send(instanceIRHelper.Command);
         });
         View receiveBtn = view.findViewById(R.id.receive_btn);
         controlLines = new ControlLines(view);
-        if(withIoManager) {
+        instanceIRHelper.setControlLines(controlLines);
+        if(instanceIRHelper.withIoManager) {
             receiveBtn.setVisibility(View.GONE);
         } else {
             receiveBtn.setOnClickListener(v -> read());
@@ -158,13 +137,13 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
             receiveText.setText("");
             return true;
         } else if( id == R.id.send_break) {
-            if(!connected) {
+            if(!instanceIRHelper.isConnected()) {
                 Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
             } else {
                 try {
-                    usbSerialPort.setBreak(true);
+                    instanceIRHelper.usbSerialPort.setBreak(true);
                     Thread.sleep(100); // should show progress bar instead of blocking UI thread
-                    usbSerialPort.setBreak(false);
+                    instanceIRHelper.usbSerialPort.setBreak(false);
                     SpannableStringBuilder spn = new SpannableStringBuilder();
                     spn.append("send <break>\n");
                     spn.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -187,14 +166,14 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
     @Override
     public void onNewData(byte[] data) {
         mainLooper.post(() -> {
-            receive(data);
+            instanceIRHelper.receive(data);
         });
     }
 
     @Override
     public void onRunError(Exception e) {
         mainLooper.post(() -> {
-            status("connection lost: " + e.getMessage());
+            instanceIRHelper.status("connection lost: " + e.getMessage());
             disconnect();
         });
     }
@@ -202,90 +181,31 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
     /*
      * Serial + UI
      */
-    private void connect() {
-        UsbDevice device = null;
-        UsbManager usbManager = (UsbManager) getActivity().getSystemService(Context.USB_SERVICE);
-        for(UsbDevice v : usbManager.getDeviceList().values())
-            if(v.getDeviceId() == deviceId)
-                device = v;
-        if(device == null) {
-            status("connection failed: device not found");
-            return;
-        }
-        UsbSerialDriver driver = UsbSerialProber.getDefaultProber().probeDevice(device);
-        if(driver == null) {
-            driver = CustomProber.getCustomProber().probeDevice(device);
-        }
-        if(driver == null) {
-            status("connection failed: no driver for device");
-            return;
-        }
-        if(driver.getPorts().size() < portNum) {
-            status("connection failed: not enough ports at device");
-            return;
-        }
-        usbSerialPort = driver.getPorts().get(portNum);
-        UsbDeviceConnection usbConnection = usbManager.openDevice(driver.getDevice());
-        if(usbConnection == null && usbPermission == UsbPermission.Unknown && !usbManager.hasPermission(driver.getDevice())) {
-            usbPermission = UsbPermission.Requested;
-            int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_MUTABLE : 0;
-            Intent intent = new Intent(INTENT_ACTION_GRANT_USB);
-            intent.setPackage(getActivity().getPackageName());
-            PendingIntent usbPermissionIntent = PendingIntent.getBroadcast(getActivity(), 0, intent, flags);
-            usbManager.requestPermission(driver.getDevice(), usbPermissionIntent);
-            return;
-        }
-        if(usbConnection == null) {
-            if (!usbManager.hasPermission(driver.getDevice()))
-                status("connection failed: permission denied");
-            else
-                status("connection failed: open failed");
-            return;
-        }
 
-        try {
-            usbSerialPort.open(usbConnection);
-            try{
-                usbSerialPort.setParameters(baudRate, 8, 1, UsbSerialPort.PARITY_NONE);
-            }catch (UnsupportedOperationException e){
-                status("unsupport setparameters");
-            }
-            if(withIoManager) {
-                usbIoManager = new SerialInputOutputManager(usbSerialPort, this);
-                usbIoManager.start();
-            }
-            status("connected");
-            connected = true;
-            controlLines.start();
-        } catch (Exception e) {
-            status("connection failed: " + e.getMessage());
-            disconnect();
-        }
-    }
 
     private void disconnect() {
-        connected = false;
+        instanceIRHelper.setConnected(false);
         controlLines.stop();
-        if(usbIoManager != null) {
-            usbIoManager.setListener(null);
-            usbIoManager.stop();
+        if(instanceIRHelper.usbIoManager != null) {
+            instanceIRHelper.usbIoManager.setListener(null);
+            instanceIRHelper.usbIoManager.stop();
         }
-        usbIoManager = null;
+        instanceIRHelper.usbIoManager = null;
         try {
-            usbSerialPort.close();
+            instanceIRHelper.usbSerialPort.close();
         } catch (IOException ignored) {}
-        usbSerialPort = null;
+        instanceIRHelper.usbSerialPort = null;
     }
 
     private void send(String str) {
-        if(!connected) {
+        if(!instanceIRHelper.isConnected()) {
             Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
             return;
         }
         try {
-            if(Command == "DataReceive"){
+            if(instanceIRHelper.Command == "DataReceive"){
                 byte[] data = instance.getIR_array_data();
-                usbSerialPort.write(data, WRITE_WAIT_MILLIS);
+                instanceIRHelper.usbSerialPort.write(data, instanceIRHelper.WRITE_WAIT_MILLIS);
             }
             byte[] data = (str + '\n').getBytes();
             SpannableStringBuilder spn = new SpannableStringBuilder();
@@ -293,46 +213,31 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
             spn.append(HexDump.dumpHexString(data)).append("\n");
             spn.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             receiveText.append(spn);
-            usbSerialPort.write(data, WRITE_WAIT_MILLIS);
+            instanceIRHelper.usbSerialPort.write(data,instanceIRHelper. WRITE_WAIT_MILLIS);
         } catch (Exception e) {
             onRunError(e);
         }
     }
 
     private void read() {
-        if(!connected) {
+        if(!instanceIRHelper.isConnected()) {
             Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
             return;
         }
         try {
             byte[] buffer = new byte[8192];
-            int len = usbSerialPort.read(buffer, READ_WAIT_MILLIS);
-            receive(Arrays.copyOf(buffer, len));
+            int len = instanceIRHelper.usbSerialPort.read(buffer, instanceIRHelper.READ_WAIT_MILLIS);
+            instanceIRHelper.receive(Arrays.copyOf(buffer, len));
         } catch (IOException e) {
             // when using read with timeout, USB bulkTransfer returns -1 on timeout _and_ errors
             // like connection loss, so there is typically no exception thrown here on error
-            status("connection lost: " + e.getMessage());
+            instanceIRHelper.status("connection lost: " + e.getMessage());
             disconnect();
         }
     }
 
-    private void receive(byte[] data) {
-        SpannableStringBuilder spn = new SpannableStringBuilder();
-        spn.append("receive " + data.length + " bytes\n");
-        if(Command == "Stored")
-            instance.setIRData(data);
-        if(data.length > 0)
-            spn.append(HexDump.dumpHexString(data)).append("\n");
-        receiveText.append(spn);
-    }
 
-    void status(String str) {
-        SpannableStringBuilder spn = new SpannableStringBuilder(str+'\n');
-        spn.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorStatusText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        receiveText.append(spn);
-    }
-
-    class ControlLines {
+    class ControlLines implements IRHelper.aControlLines {
         private static final int refreshInterval = 200; // msec
 
         private final Runnable runnable;
@@ -351,27 +256,27 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
             dtrBtn.setOnClickListener(this::toggle);
         }
 
-        private void toggle(View v) {
+        public void toggle(View v) {
             ToggleButton btn = (ToggleButton) v;
-            if (!connected) {
+            if (!instanceIRHelper.isConnected()) {
                 btn.setChecked(!btn.isChecked());
                 Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
                 return;
             }
             String ctrl = "";
             try {
-                if (btn.equals(rtsBtn)) { ctrl = "RTS"; usbSerialPort.setRTS(btn.isChecked()); }
-                if (btn.equals(dtrBtn)) { ctrl = "DTR"; usbSerialPort.setDTR(btn.isChecked()); }
+                if (btn.equals(rtsBtn)) { ctrl = "RTS"; instanceIRHelper.usbSerialPort.setRTS(btn.isChecked()); }
+                if (btn.equals(dtrBtn)) { ctrl = "DTR"; instanceIRHelper.usbSerialPort.setDTR(btn.isChecked()); }
             } catch (IOException e) {
-                status("set" + ctrl + "() failed: " + e.getMessage());
+                instanceIRHelper.status("set" + ctrl + "() failed: " + e.getMessage());
             }
         }
 
-        private void run() {
-            if (!connected)
+        public void run() {
+            if (!instanceIRHelper.isConnected())
                 return;
             try {
-                EnumSet<UsbSerialPort.ControlLine> controlLines = usbSerialPort.getControlLines();
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getControlLines();
                 rtsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RTS));
                 ctsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CTS));
                 dtrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DTR));
@@ -380,15 +285,15 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
                 riBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RI));
                 mainLooper.postDelayed(runnable, refreshInterval);
             } catch (Exception e) {
-                status("getControlLines() failed: " + e.getMessage() + " -> stopped control line refresh");
+                instanceIRHelper.status("getControlLines() failed: " + e.getMessage() + " -> stopped control line refresh");
             }
         }
 
-        void start() {
-            if (!connected)
+        public void start() {
+            if (!instanceIRHelper.isConnected())
                 return;
             try {
-                EnumSet<UsbSerialPort.ControlLine> controlLines = usbSerialPort.getSupportedControlLines();
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getSupportedControlLines();
                 if (!controlLines.contains(UsbSerialPort.ControlLine.RTS)) rtsBtn.setVisibility(View.INVISIBLE);
                 if (!controlLines.contains(UsbSerialPort.ControlLine.CTS)) ctsBtn.setVisibility(View.INVISIBLE);
                 if (!controlLines.contains(UsbSerialPort.ControlLine.DTR)) dtrBtn.setVisibility(View.INVISIBLE);
@@ -408,7 +313,7 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
             }
         }
 
-        void stop() {
+        public void stop() {
             mainLooper.removeCallbacks(runnable);
             rtsBtn.setChecked(false);
             ctsBtn.setChecked(false);
@@ -416,6 +321,11 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
             dsrBtn.setChecked(false);
             cdBtn.setChecked(false);
             riBtn.setChecked(false);
+        }
+
+        @Override
+        public void spnRespone(SpannableStringBuilder spn) {
+            receiveText.append(spn);
         }
     }
 }

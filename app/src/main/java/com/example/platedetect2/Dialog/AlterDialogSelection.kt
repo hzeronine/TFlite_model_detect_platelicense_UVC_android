@@ -16,11 +16,13 @@ class AlterDialogSelection : DialogFragment() {
             var checkedIndex = -1
             var instance = DeviceListControl.getInstance()
             alterBuilder.setTitle("Select an option")
-            alterBuilder.setSingleChoiceItems(R.array.read_modes, -1, DialogInterface.OnClickListener { dialog, which ->
+            alterBuilder.setSingleChoiceItems(R.array.selection_device, -1, DialogInterface.OnClickListener { dialog, which ->
                 checkedIndex = which
             })
             alterBuilder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
-                onActivityResult(1101,checkedIndex, Intent())
+                var intent : Intent = Intent()
+                intent.putExtra("position",which)
+                requireParentFragment().onActivityResult(1101,checkedIndex, intent)
             })
 
             alterBuilder.create()

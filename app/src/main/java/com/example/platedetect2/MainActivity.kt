@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity(), FragmentManager.OnBackStackChangedList
         if ("android.hardware.usb.action.USB_DEVICE_ATTACHED" == intent!!.action) {
             val terminal: ArduinoConnectionActivity? =
                 supportFragmentManager.findFragmentByTag("terminal") as ArduinoConnectionActivity?
-            if (terminal != null) terminal.status("USB device detected")
+
         }
         super.onNewIntent(intent)
     }

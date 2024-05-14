@@ -2,6 +2,8 @@ package com.example.platedetect2.utils;
 
 import android.hardware.usb.UsbDevice;
 
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
+
 import java.util.ArrayList;
 
 public class DeviceListControl {
@@ -13,6 +15,14 @@ public class DeviceListControl {
         if(instance == null)
             instance = new DeviceListControl();
         return instance;
+    }
+
+    public void addNewArduinoDevice(ModelDevice dataDevice){
+        if(ArduinoDevice == null){
+            ArduinoDevice = new ArrayList<>();
+        }
+        if(!FindArduinoDevice(dataDevice.vendorId))
+            ArduinoDevice.add(dataDevice);
     }
     public ArrayList<ModelDevice> getCameraDevice() {
         return CameraDevice;
@@ -30,9 +40,39 @@ public class DeviceListControl {
         ArduinoDevice = arduinoDevice;
     }
 
-    protected class ModelDevice {
+    public boolean FindArduinoDevice(int deviceId) {
+        for (ModelDevice modelDevice : ArduinoDevice) {
+            if(modelDevice.vendorId == deviceId)
+                return true;
+        }
+        return false;
+    }
+    public boolean FindCameraDevice(int vendorId) {
+        for (ModelDevice modelDevice : CameraDevice) {
+            if(modelDevice.vendorId == vendorId)
+                return true;
+        }
+        return false;
+    }
+    public void addNewCameraDevice(ModelDevice modelData) {
+        if(CameraDevice == null){
+            CameraDevice = new ArrayList<>();
+        }
+        if(!FindCameraDevice(modelData.vendorId))
+            CameraDevice.add(modelData);
+    }
+    public static class ModelDevice {
         UsbDevice device;
-        String deviceID;
+        int vendorId;
+        int port;
+        UsbSerialDriver driver;
+
+        public ModelDevice(UsbDevice device, int deviceID, int port, UsbSerialDriver driver) {
+            this.device = device;
+            this.vendorId = deviceID;
+            this.port = port;
+            this.driver = driver;
+        }
 
         public UsbDevice getDevice() {
             return device;
@@ -42,12 +82,12 @@ public class DeviceListControl {
             this.device = device;
         }
 
-        public String getDeviceID() {
-            return deviceID;
+        public int getvendorId() {
+            return vendorId;
         }
 
-        public void setDeviceID(String deviceID) {
-            this.deviceID = deviceID;
+        public void setvendorId(int vendorId) {
+            this.vendorId = vendorId;
         }
     }
 }
