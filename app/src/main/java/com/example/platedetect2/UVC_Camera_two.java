@@ -158,8 +158,8 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                     }
             mCameraHelper.addSurface(mCameraView.getHolder().getSurface(), false);
             if(mCameraHelper.isCameraOpened()) {
-                        mCameraHelper.setFrameCallback(new IFrameCallback() {
-                            @Override
+                mCameraHelper.setFrameCallback(new IFrameCallback() {
+                    @Override
                     public void onFrame(ByteBuffer frame) {
 
                         byte[] nv21 = new byte[frame.remaining()];
