@@ -5,17 +5,15 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.utils.widget.ImageFilterView;
 
-
 import android.content.Intent;
-
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
-
 import com.example.platedetect2.ScanQR.ScanCheckIn;
 
 import com.example.platedetect2.utils.DeviceListControl;
+
 
 import com.example.platedetect2.utils.NV21ToBitmap;
 import com.example.platedetect2.utils.ObjectDetectorHelper;
