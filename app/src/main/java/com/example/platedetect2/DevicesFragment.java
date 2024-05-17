@@ -27,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.platedetect2.Dialog.AlterDialogSelection;
+import com.example.platedetect2.ScanQR.ScanCheckIn;
 import com.example.platedetect2.utils.CustomProber;
 import com.example.platedetect2.utils.DeviceListControl;
 import com.example.platedetect2.utils.IRHelper;
@@ -163,12 +164,12 @@ public class DevicesFragment extends ListFragment {
 //                Toast.makeText(getActivity(),"Connect Camera Device First!", Toast.LENGTH_SHORT).show();
 //                return true;
 //            }
-//            Intent intent = new Intent(getContext(), UVC_Camera_two.class);
-//            startActivity(intent);
+            Intent intent = new Intent(getContext(), ScanCheckIn.class);
+            startActivity(intent);
 //            getActivity().finish();
-            Fragment fragment = new ArduinoConnectionActivity();
-            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
-                    .addToBackStack(null).commit();
+//            Fragment fragment = new ArduinoConnectionActivity();
+//            getFragmentManager().beginTransaction().replace(R.id.fragment, fragment, "terminal")
+//                    .addToBackStack(null).commit();
             return true;
         } else {
             return super.onOptionsItemSelected(item);

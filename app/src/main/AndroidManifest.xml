@@ -31,7 +31,6 @@
     <uses-permission android:name="android.permission.ACCESS_USB_DEVICE" />
     <uses-permission android:name="android.permission.BROADCAST_USB_PERMISSION" />
 
-
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -44,19 +43,23 @@
         android:theme="@style/AppTheme"
         tools:targetApi="31">
         <activity
-            android:name=".ScanQR.Login"
-            android:exported="true" />
+            android:name=".ScanQR.ScanCheckOut"
+            android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ScanQR.Login"
+            android:exported="false" />
+        <activity
+            android:name=".ScanQR.ScanCheckIn"
             android:exported="true" />
         <activity
             android:name=".UVC_Camera_two"
             android:exported="true" />
         <activity
-            android:name=".ScanQR.ScanQR"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 

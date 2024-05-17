@@ -5,22 +5,16 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.utils.widget.ImageFilterView;
 
-<<<<<<< HEAD
 import android.content.Intent;
-=======
-import android.content.Context;
->>>>>>> master
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import com.example.platedetect2.ScanQR.ScanCheckIn;
 
-<<<<<<< HEAD
-import com.example.platedetect2.ScanQR.ScanQR;
-=======
 import com.example.platedetect2.utils.DeviceListControl;
->>>>>>> master
+
+
 import com.example.platedetect2.utils.NV21ToBitmap;
 import com.example.platedetect2.utils.ObjectDetectorHelper;
 import com.example.platedetect2.Dialog.ProgressHelper;
@@ -44,7 +38,6 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.tensorflow.lite.task.vision.detector.Detection;
 import java.nio.ByteBuffer;
@@ -224,6 +217,8 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     }
     boolean founded = false;
     String resultText = "";
+
+    String bienso  = "123456";
     @Override
     public void onResults(@Nullable List<Detection> results, @NonNull Bitmap image,
                           long inferenceTime, int imageHeight, int imageWidth) {
@@ -285,7 +280,7 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                                 textvip.setText(resultText);
 
                                 /////////
-                                Intent intent = new Intent(getApplicationContext(), ScanQR.class);
+                                Intent intent = new Intent(getApplicationContext(), ScanCheckIn.class);
                                 startActivity(intent);
                                 finish();
                             }

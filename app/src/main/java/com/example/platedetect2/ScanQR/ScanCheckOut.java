@@ -1,15 +1,5 @@
 package com.example.platedetect2.ScanQR;
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.media.Image;
-import android.os.Bundle;
-import android.util.Log;
-import android.util.Size;
-import android.widget.EditText;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
@@ -21,10 +11,17 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.Image;
+import android.os.Bundle;
+import android.util.Log;
+import android.util.Size;
+import android.widget.EditText;
+import android.widget.Toast;
+
 import com.example.platedetect2.R;
-import com.example.platedetect2.ScanQR.ApiService;
-import com.example.platedetect2.ScanQR.MD5Encoder;
-import com.example.platedetect2.ScanQR.TokenResponse;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -37,18 +34,15 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.Callback;
 
-
-public class ScanQR extends AppCompatActivity {
+public class ScanCheckOut extends AppCompatActivity {
     private EditText qrCodeTxt;
     private PreviewView previewView;
     private ListenableFuture<ProcessCameraProvider> cameraProviderListenableFuture;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,14 +51,12 @@ public class ScanQR extends AppCompatActivity {
         qrCodeTxt = findViewById(R.id.qrCideTxt);
         previewView = findViewById(R.id.previewView);
         // checking for camera permissions
-        if (ContextCompat.checkSelfPermission(ScanQR.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(ScanCheckOut.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             init();
         }
         else{
-            ActivityCompat.requestPermissions(ScanQR.this, new String[]{Manifest.permission.CAMERA}, 101);
+            ActivityCompat.requestPermissions(ScanCheckOut.this, new String[]{Manifest.permission.CAMERA}, 101);
         }
-
-
 
 
         Intent intent = getIntent();
@@ -80,8 +72,9 @@ public class ScanQR extends AppCompatActivity {
         }
     }
 
+
     private void init() {
-        cameraProviderListenableFuture = ProcessCameraProvider.getInstance(ScanQR.this);
+        cameraProviderListenableFuture = ProcessCameraProvider.getInstance(ScanCheckOut.this);
         cameraProviderListenableFuture.addListener(new Runnable() {
             @Override
             public void run() {
@@ -94,7 +87,7 @@ public class ScanQR extends AppCompatActivity {
                     throw new RuntimeException(e);
                 }
             }
-        }, ContextCompat.getMainExecutor (ScanQR.this));
+        }, ContextCompat.getMainExecutor (ScanCheckOut.this));
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -103,7 +96,7 @@ public class ScanQR extends AppCompatActivity {
             init();
         }
         else{
-            Toast.makeText(ScanQR.this,"Permissions Denied", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ScanCheckOut.this,"Permissions Denied", Toast.LENGTH_SHORT).show();
         }
     }
     boolean flag = false;
@@ -111,7 +104,7 @@ public class ScanQR extends AppCompatActivity {
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().setTargetResolution(new Size(1280, 720))
                 .setBackpressureStrategy (ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
 
-        imageAnalysis.setAnalyzer (ContextCompat.getMainExecutor (ScanQR.this), new ImageAnalysis. Analyzer () {
+        imageAnalysis.setAnalyzer (ContextCompat.getMainExecutor (ScanCheckOut.this), new ImageAnalysis. Analyzer () {
             @Override
             public void analyze (@NonNull ImageProxy image) {
                 Image mediaImage = image.getImage();
@@ -171,7 +164,7 @@ public class ScanQR extends AppCompatActivity {
             Log.d("Test", "Mã QR còn hạn sử dụng");
             flag = true;
             callApiGetToken(uid_QR);
-
+            postCheckOut();
         } else {
             Log.d("Test", "Mã QR đã hết hạn sử dụng");
             qrCodeTxt.setText("Mã QR đã hết hạn sử dụng");
@@ -197,6 +190,38 @@ public class ScanQR extends AppCompatActivity {
         return input.split(":");
     }
 
+    private void postCheckOut() {
+        // Khởi tạo Retrofit
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://c2se-14-sts-api.onrender.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        // Tạo một instance của ApiService từ Retrofit
+        ApiService apiService = retrofit.create(ApiService.class);
+
+        //Truyền thông số vào đây
+        String licensePlate = "AAAA34";
+        int user_id = 14;
+        int locationId = 3;
+
+        CheckOut requestBody = new CheckOut(licensePlate, user_id, locationId);
+        Call<CheckOut> call = apiService.postCheckOut(requestBody);
+
+        call.enqueue(new Callback<CheckOut>() {
+            @Override
+            public void onResponse(Call<CheckOut> call, Response<CheckOut> response) {
+                Toast.makeText(ScanCheckOut.this, "Check out thành công", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Call<CheckOut> call, Throwable throwable) {
+
+            }
+        });
+
+    }
+
     private void callApiGetToken(String userId) {
         // Khởi tạo Retrofit
         Retrofit retrofit = new Retrofit.Builder()
@@ -219,12 +244,12 @@ public class ScanQR extends AppCompatActivity {
                         token_user = token;
                         extracted(millis_QR, md5Enc_QR, md5Encoder);
                         flag = false;
-                        Toast.makeText(ScanQR.this, "Token: " + token, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ScanCheckOut.this, "Token: " + token, Toast.LENGTH_SHORT).show();
 
                     }
                 } else {
                     // Xử lý khi không nhận được kết quả thành công
-                    Toast.makeText(ScanQR.this, "Lỗi khi gọi API", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ScanCheckOut.this, "Lỗi khi gọi API", Toast.LENGTH_SHORT).show();
                 }
 
 
@@ -234,7 +259,7 @@ public class ScanQR extends AppCompatActivity {
             @Override
             public void onFailure(Call<TokenResponse> call, Throwable t) {
                 // Xử lý khi gặp lỗi trong quá trình gọi API
-                Toast.makeText(ScanQR.this, "Lỗi khi gọi API", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ScanCheckOut.this, "Lỗi khi gọi API", Toast.LENGTH_SHORT).show();
             }
         });
     }
