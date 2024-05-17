@@ -55,10 +55,10 @@
             android:name=".MainActivity"
             android:exported="true" />
         <activity
-            android:name=".ScanQR.Setup"
+            android:name=".UVC_Camera_two"
             android:exported="true" />
         <activity
-            android:name=".UVC_Camera_two"
+            android:name=".ScanQR.Setup"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
