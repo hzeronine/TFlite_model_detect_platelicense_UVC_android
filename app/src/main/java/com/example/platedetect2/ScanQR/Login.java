@@ -88,7 +88,7 @@ public class Login extends AppCompatActivity {
                                         // Địa chỉ email hợp lệ, đăng nhập thành công
                                         saveLoginSession(account.getId(), account.getEmail()); // Lưu thông tin phiên đăng nhập vào SharedPreferences
                                         Log.d("Test: ", account.getId() + "acc: " + account.getEmail());
-                                        Intent intent = new Intent(Login.this, ScanQR.class);
+                                        Intent intent = new Intent(Login.this, ScanCheckIn.class);
                                         // Gửi dữ liệu qua MainActivity
                                         intent.putExtra("user_email", emailLocation.getEmail());
                                         intent.putExtra("location_id", emailLocation.getLocationId());

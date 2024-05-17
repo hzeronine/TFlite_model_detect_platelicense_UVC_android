@@ -127,6 +127,7 @@ dependencies {
 
 
     //////////////////////////
+
     implementation ("com.google.android.gms:play-services-mlkit-barcode-scanning:16.1.2")
 
 
@@ -142,5 +143,6 @@ dependencies {
     implementation ("androidx.camera:camera-camera2:1.3.3")
     implementation("com.google.mlkit:vision-common:17.3.0")
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
+
 
 }
