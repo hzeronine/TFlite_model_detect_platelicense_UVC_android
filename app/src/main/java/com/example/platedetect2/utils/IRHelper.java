@@ -182,7 +182,7 @@ public class IRHelper {
         usbSerialPort = null;
     }
 
-    private void send(String str) {
+    public void send(String str) {
         if(!connected) {
             Toast.makeText(mContext, "not connected", Toast.LENGTH_SHORT).show();
             return;
@@ -197,6 +197,7 @@ public class IRHelper {
             spn.append("send " + data.length + " bytes\n");
             spn.append(HexDump.dumpHexString(data)).append("\n");
             spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            controlLines.spnRespone(spn);
 //            receiveText.append(spn);
             usbSerialPort.write(data, WRITE_WAIT_MILLIS);
         } catch (Exception e) {
@@ -228,6 +229,7 @@ public class IRHelper {
             instanceIRBytesStored.setIRData(data);
         if(data.length > 0)
             spn.append(HexDump.dumpHexString(data)).append("\n");
+        spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorRecieveText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         controlLines.spnRespone(spn);
     }
 

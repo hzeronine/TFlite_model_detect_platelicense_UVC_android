@@ -47,13 +47,13 @@
             android:name=".ScanQR.Login"
             android:exported="true" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ScanQR.ScanQR"
             android:exported="true" />
         <activity
             android:name=".UVC_Camera_two"
             android:exported="true" />
         <activity
-            android:name=".ScanQR.ScanQR"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

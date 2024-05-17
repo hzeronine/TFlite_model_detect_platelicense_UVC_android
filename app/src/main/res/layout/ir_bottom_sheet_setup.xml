@@ -1,0 +1,162 @@
+<!--
+    ~ Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+    ~
+    ~ Licensed under the Apache License, Version 2.0 (the "License");
+    ~ you may not use this file except in compliance with the License.
+    ~ You may obtain a copy of the License at
+    ~
+    ~       http://www.apache.org/licenses/LICENSE-2.0
+    ~
+    ~ Unless required by applicable law or agreed to in writing, software
+    ~ distributed under the License is distributed on an "AS IS" BASIS,
+    ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    ~ See the License for the specific language governing permissions and
+    ~ limitations under the License.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bottom_sheet_layout"
+    android:layout_width="match_parent"
+    android:layout_gravity="center_horizontal"
+    android:background="@color/bottom_sheet_background"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="@dimen/bottom_sheet_padding"
+    android:layout_height="wrap_content"
+    app:behavior_hideable="false"
+    app:behavior_peekHeight="@dimen/bottom_sheet_peek_height"
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="16dp"
+            android:src="@drawable/icn_chevron_up"
+            android:contentDescription="@string/alt_bottom_sheet_chevron" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ToggleButton
+                android:id="@+id/controlLineRts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48sp"
+                android:textOff="RTS"
+                android:textOn="RTS" />
+
+            <ToggleButton
+                android:id="@+id/controlLineCts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48sp"
+                android:clickable="false"
+                android:textColor="@android:color/secondary_text_dark"
+                android:textOff="CTS"
+                android:textOn="CTS" />
+
+            <View
+                android:layout_height="match_parent"
+                android:layout_width="6dp" />
+
+            <ToggleButton
+                android:id="@+id/controlLineDtr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48sp"
+                android:textOff="DTR"
+                android:textOn="DTR" />
+
+            <ToggleButton
+                android:id="@+id/controlLineDsr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:minWidth="48sp"
+                android:textColor="@android:color/secondary_text_dark"
+                android:textOff="DSR"
+                android:textOn="DSR" />
+
+            <View
+                android:layout_height="match_parent"
+                android:layout_width="6dp" />
+
+            <ToggleButton
+                android:id="@+id/controlLineCd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:minWidth="48sp"
+                android:textColor="@android:color/secondary_text_dark"
+                android:textOff="CD"
+                android:textOn="CD" />
+
+            <ToggleButton
+                android:id="@+id/controlLineRi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48sp"
+                android:clickable="false"
+                android:textColor="@android:color/secondary_text_dark"
+                android:textOff="RI"
+                android:textOn="RI" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:background="?android:attr/listDivider"
+            android:layout_height="2dp" />
+
+        <TextView
+            android:id="@+id/receive_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:freezesText="true"
+            android:gravity="bottom"
+            android:scrollbars="vertical"
+            android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+            android:typeface="monospace" />
+
+        <Button
+            android:id="@+id/receive_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Read" />
+
+        <View
+            android:layout_width="match_parent"
+            android:background="?android:attr/listDivider"
+            android:layout_height="2dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/send_text"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:inputType="text|textNoSuggestions"
+                android:singleLine="true" />
+
+            <ImageButton
+                android:id="@+id/send_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@drawable/ic_send_white_24dp" />
+        </LinearLayout>
+
+
+        <!-- Model selection row -->
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -5,13 +5,23 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.util.Size;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.AppCompatImageButton;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -25,6 +35,8 @@ import com.example.platedetect2.R;
 import com.example.platedetect2.ScanQR.ApiService;
 import com.example.platedetect2.ScanQR.MD5Encoder;
 import com.example.platedetect2.ScanQR.TokenResponse;
+import com.example.platedetect2.utils.IRBytesStored;
+import com.example.platedetect2.utils.IRHelper;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,7 +44,11 @@ import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
+import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -43,19 +59,40 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.Callback;
 
 
-public class ScanQR extends AppCompatActivity {
+public class ScanQR extends AppCompatActivity implements SerialInputOutputManager.Listener{
     private EditText qrCodeTxt;
     private PreviewView previewView;
     private ListenableFuture<ProcessCameraProvider> cameraProviderListenableFuture;
 
+    IRBytesStored instance = IRBytesStored.getInstance();
+    private final Handler mainLooper;
+    private TextView receiveText;
+    private IRHelper.aControlLines controlLines;
 
+    IRHelper instanceIRHelper;
+
+    public ScanQR() {
+        mainLooper = new Handler(Looper.getMainLooper());
+    }
+    View receiveBtn;
+    View sendBtn;
+    TextView sendText;
+    View BottomSheetView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scanqr);
 
+        BottomSheetView = findViewById(R.id.bottom_sheet_layout);
+        controlLines = new ControlLines(BottomSheetView);
+        receiveText = BottomSheetView.findViewById(R.id.receive_text);
+        receiveBtn = BottomSheetView.findViewById(R.id.receive_btn);
+        sendBtn = BottomSheetView.findViewById(R.id.send_btn);
+        sendText = BottomSheetView.findViewById(R.id.send_text);
+
         qrCodeTxt = findViewById(R.id.qrCideTxt);
         previewView = findViewById(R.id.previewView);
+
         // checking for camera permissions
         if (ContextCompat.checkSelfPermission(ScanQR.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             init();
@@ -64,9 +101,16 @@ public class ScanQR extends AppCompatActivity {
             ActivityCompat.requestPermissions(ScanQR.this, new String[]{Manifest.permission.CAMERA}, 101);
         }
 
+        instanceIRHelper = IRHelper.getNewInstance(getApplicationContext(), this);
+        instanceIRHelper.setControlLines(controlLines);
+        if(instanceIRHelper.withIoManager) {
+            receiveBtn.setVisibility(View.GONE);
+        }
 
-
-
+        sendBtn.setOnClickListener(v ->{
+            instanceIRHelper.Command = sendText.getText().toString();
+            instanceIRHelper.send(instanceIRHelper.Command);
+        });
         Intent intent = getIntent();
         if (intent != null) {
             String userEmail = intent.getStringExtra("user_email");
@@ -238,5 +282,150 @@ public class ScanQR extends AppCompatActivity {
             }
         });
     }
+    @Override
+    public void onStart() {
+        super.onStart();
+        instanceIRHelper.register();
+    }
 
+    @Override
+    public void onStop() {
+        instanceIRHelper.unregister();
+        super.onStop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(!instanceIRHelper.isConnected() && (instanceIRHelper.getUsbPermission() == IRHelper.UsbPermission.Unknown || instanceIRHelper.getUsbPermission()  == IRHelper.UsbPermission.Granted))
+            instanceIRHelper.HandlerPost();
+    }
+
+    @Override
+    public void onPause() {
+        if(instanceIRHelper.isConnected()) {
+            instanceIRHelper.status("disconnected");
+            instanceIRHelper.disconnect();
+        }
+        super.onPause();
+    }
+    @Override
+    public void onNewData(byte[] data) {
+        mainLooper.post(() -> {
+            instanceIRHelper.receive(data);
+        });
+    }
+
+    @Override
+    public void onRunError(Exception e) {
+        mainLooper.post(() -> {
+            instanceIRHelper.status("connection lost: " + e.getMessage());
+            disconnect();
+        });
+    }
+
+    private void disconnect() {
+        instanceIRHelper.setConnected(false);
+        controlLines.stop();
+        if(instanceIRHelper.usbIoManager != null) {
+            instanceIRHelper.usbIoManager.setListener(null);
+            instanceIRHelper.usbIoManager.stop();
+        }
+        instanceIRHelper.usbIoManager = null;
+        try {
+            instanceIRHelper.usbSerialPort.close();
+        } catch (IOException ignored) {}
+        instanceIRHelper.usbSerialPort = null;
+    }
+    class ControlLines implements IRHelper.aControlLines {
+        private static final int refreshInterval = 200; // msec
+
+        private final Runnable runnable;
+        private final ToggleButton rtsBtn, ctsBtn, dtrBtn, dsrBtn, cdBtn, riBtn;
+
+        ControlLines(View view) {
+            runnable = this::run; // w/o explicit Runnable, a new lambda would be created on each postDelayed, which would not be found again by removeCallbacks
+
+            rtsBtn = view.findViewById(R.id.controlLineRts);
+            ctsBtn = view.findViewById(R.id.controlLineCts);
+            dtrBtn = view.findViewById(R.id.controlLineDtr);
+            dsrBtn = view.findViewById(R.id.controlLineDsr);
+            cdBtn = view.findViewById(R.id.controlLineCd);
+            riBtn = view.findViewById(R.id.controlLineRi);
+            rtsBtn.setOnClickListener(this::toggle);
+            dtrBtn.setOnClickListener(this::toggle);
+        }
+
+        public void toggle(View v) {
+            ToggleButton btn = (ToggleButton) v;
+            if (!instanceIRHelper.isConnected()) {
+                btn.setChecked(!btn.isChecked());
+                Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String ctrl = "";
+            try {
+                if (btn.equals(rtsBtn)) { ctrl = "RTS"; instanceIRHelper.usbSerialPort.setRTS(btn.isChecked()); }
+                if (btn.equals(dtrBtn)) { ctrl = "DTR"; instanceIRHelper.usbSerialPort.setDTR(btn.isChecked()); }
+            } catch (IOException e) {
+                instanceIRHelper.status("set" + ctrl + "() failed: " + e.getMessage());
+            }
+        }
+
+        public void run() {
+            if (!instanceIRHelper.isConnected())
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getControlLines();
+                rtsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RTS));
+                ctsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CTS));
+                dtrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DTR));
+                dsrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DSR));
+                cdBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CD));
+                riBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RI));
+                mainLooper.postDelayed(runnable, refreshInterval);
+            } catch (Exception e) {
+                instanceIRHelper.status("getControlLines() failed: " + e.getMessage() + " -> stopped control line refresh");
+            }
+        }
+
+        public void start() {
+            if (!instanceIRHelper.isConnected())
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getSupportedControlLines();
+                if (!controlLines.contains(UsbSerialPort.ControlLine.RTS)) rtsBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.CTS)) ctsBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.DTR)) dtrBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.DSR)) dsrBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.CD))   cdBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.RI))   riBtn.setVisibility(View.INVISIBLE);
+                run();
+            } catch (Exception e) {
+                Toast.makeText(getApplicationContext(), "getSupportedControlLines() failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                rtsBtn.setVisibility(View.INVISIBLE);
+                ctsBtn.setVisibility(View.INVISIBLE);
+                dtrBtn.setVisibility(View.INVISIBLE);
+                dsrBtn.setVisibility(View.INVISIBLE);
+                cdBtn.setVisibility(View.INVISIBLE);
+                cdBtn.setVisibility(View.INVISIBLE);
+                riBtn.setVisibility(View.INVISIBLE);
+            }
+        }
+
+        public void stop() {
+            mainLooper.removeCallbacks(runnable);
+            rtsBtn.setChecked(false);
+            ctsBtn.setChecked(false);
+            dtrBtn.setChecked(false);
+            dsrBtn.setChecked(false);
+            cdBtn.setChecked(false);
+            riBtn.setChecked(false);
+        }
+
+        @Override
+        public void spnRespone(SpannableStringBuilder spn) {
+            receiveText.append(spn);
+        }
+    }
 }
