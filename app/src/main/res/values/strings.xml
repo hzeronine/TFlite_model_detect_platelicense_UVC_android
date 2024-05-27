@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name" translatable="false">PlateDetect</string>
     <!-- TODO: Remove or change this placeholder text -->
+    <string name="web_client_id" translatable="false">1069924781685-e8f9vubgar7vvqnh177mro3v9lc3ho2a.apps.googleusercontent.com</string>
     <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
 
     <string name="alt_bottom_sheet_chevron" translatable="false">Bottom sheet expandable indicator</string>
@@ -38,6 +39,10 @@
     </string-array>
 
     <string name="devices" translatable="false">USB Devices</string>
+    <string name="Aruino_devices" translatable="false">Chọn thiết bị Hồng ngoại:</string>
+    <string name="Camera_devices" translatable="false">Chọn thiết bị Camera:</string>
+    <string name="device_kinds" translatable="false">Chọn đầu ra cho thiết bị:</string>
+    <string name="hint_device" translatable="false">--Chọn thiết bị--</string>
 
     <string name="google_sign_in_button">Google Sign-in Button</string>
 </resources>

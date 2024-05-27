@@ -2,6 +2,7 @@ package com.example.platedetect2.ScanQR;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -16,12 +17,22 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.Image;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.util.Size;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
+import com.example.platedetect2.Dialog.ProgressHelper;
 import com.example.platedetect2.R;
+import com.example.platedetect2.UVC_Camera_two;
+import com.example.platedetect2.utils.IRBytesStored;
+import com.example.platedetect2.utils.IRHelper;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,7 +40,11 @@ import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
+import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -39,17 +54,43 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class ScanCheckOut extends AppCompatActivity {
+public class ScanCheckOut extends AppCompatActivity implements SerialInputOutputManager.Listener {
     private EditText qrCodeTxt;
     private PreviewView previewView;
     private ListenableFuture<ProcessCameraProvider> cameraProviderListenableFuture;
+    IRBytesStored instance = IRBytesStored.getInstance();
+    private final Handler mainLooper;
+    private TextView receiveText;
+    private IRHelper.aControlLines controlLines;
+
+    IRHelper instanceIRHelper;
+
+    public ScanCheckOut() {
+        mainLooper = new Handler(Looper.getMainLooper());
+    }
+    View receiveBtn;
+    View sendBtn;
+    TextView sendText;
+    View BottomSheetView;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scanqr);
 
+
+        instanceIRHelper = IRHelper.getNewInstance(getApplicationContext(), this);
+        BottomSheetView = findViewById(R.id.bottom_sheet_layout);
+        controlLines = new ControlLines(BottomSheetView);
+        receiveText = BottomSheetView.findViewById(R.id.receive_text);
+        receiveBtn = BottomSheetView.findViewById(R.id.receive_btn);
+        sendBtn = BottomSheetView.findViewById(R.id.send_btn);
+        sendText = BottomSheetView.findViewById(R.id.send_text);
+        instanceIRHelper.setControlLines(controlLines);
+
         qrCodeTxt = findViewById(R.id.qrCideTxt);
         previewView = findViewById(R.id.previewView);
+        ((TextView)findViewById(R.id.Location)).setText("Cơ sở hiện tại: " + IRBytesStored.getInstance().getEmailLocation().getLocationName());
+
         // checking for camera permissions
         if (ContextCompat.checkSelfPermission(ScanCheckOut.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             init();
@@ -59,17 +100,6 @@ public class ScanCheckOut extends AppCompatActivity {
         }
 
 
-        Intent intent = getIntent();
-        if (intent != null) {
-            String userEmail = intent.getStringExtra("user_email");
-            int locationId = intent.getIntExtra("location_id", -1);
-            String locationName = intent.getStringExtra("location_name");
-
-            // Sử dụng dữ liệu nhận được
-            Log.d("MainActivity", "User Email: " + userEmail);
-            Log.d("MainActivity", "Location ID: " + locationId);
-            Log.d("MainActivity", "Location Name: " + locationName);
-        }
     }
 
 
@@ -131,7 +161,7 @@ public class ScanCheckOut extends AppCompatActivity {
             }
         });
         Preview preview = new Preview.Builder().build();
-        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_BACK).build();
+        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_FRONT).build();
         preview.setSurfaceProvider (previewView.getSurfaceProvider());
         processCameraProvider.bindToLifecycle (this, cameraSelector, imageAnalysis, preview);
     }
@@ -164,7 +194,6 @@ public class ScanCheckOut extends AppCompatActivity {
             Log.d("Test", "Mã QR còn hạn sử dụng");
             flag = true;
             callApiGetToken(uid_QR);
-            postCheckOut();
         } else {
             Log.d("Test", "Mã QR đã hết hạn sử dụng");
             qrCodeTxt.setText("Mã QR đã hết hạn sử dụng");
@@ -189,7 +218,7 @@ public class ScanCheckOut extends AppCompatActivity {
     public static String[] splitString(String input) {
         return input.split(":");
     }
-
+    boolean flag_close = false;
     private void postCheckOut() {
         // Khởi tạo Retrofit
         Retrofit retrofit = new Retrofit.Builder()
@@ -201,9 +230,9 @@ public class ScanCheckOut extends AppCompatActivity {
         ApiService apiService = retrofit.create(ApiService.class);
 
         //Truyền thông số vào đây
-        String licensePlate = "AAAA34";
-        int user_id = 14;
-        int locationId = 3;
+        String licensePlate = IRBytesStored.getInstance().getLiscensePlate();
+        String user_id = uid_QR;
+        int locationId = IRBytesStored.getInstance().getEmailLocation().getLocationId();
 
         CheckOut requestBody = new CheckOut(licensePlate, user_id, locationId);
         Call<CheckOut> call = apiService.postCheckOut(requestBody);
@@ -211,7 +240,52 @@ public class ScanCheckOut extends AppCompatActivity {
         call.enqueue(new Callback<CheckOut>() {
             @Override
             public void onResponse(Call<CheckOut> call, Response<CheckOut> response) {
-                Toast.makeText(ScanCheckOut.this, "Check out thành công", Toast.LENGTH_SHORT).show();
+                mainLooper.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(flag_close == true) {
+                            return;
+                        }
+                        flag_close = true;
+                        int code = response.code();
+                        if(code >= 200 && code < 300) {
+                            if(!ProgressHelper.isDialogVisible()){
+                                ProgressHelper.showSuccessDialog(ScanCheckOut.this,"Thành Công");
+                                instanceIRHelper.Command = "OpenBarrier";
+                                instanceIRHelper.send(instanceIRHelper.Command);
+                                mainLooper.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if(ProgressHelper.isDialogVisible()){
+                                            ProgressHelper.dismissDialog();
+                                            instanceIRHelper.Command = "CloseBarrier";
+                                            instanceIRHelper.send(instanceIRHelper.Command);
+
+                                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                                            startActivity(intent);
+                                            finish();
+
+                                        }
+                                    }
+                                }, 5000);
+                            }
+                        } else if (code >= 400 && code < 500) {
+                            Toast.makeText(ScanCheckOut.this, "Xe này đã check out trên server", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                            startActivity(intent);
+                            finish();
+
+                        } else if (code >= 500) {
+                            Toast.makeText(ScanCheckOut.this, "Không thể kết nối trên server", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                            startActivity(intent);
+                            finish();
+
+                        }
+
+
+                    }
+                });
             }
 
             @Override
@@ -243,9 +317,10 @@ public class ScanCheckOut extends AppCompatActivity {
                         String token = tokenResponse.getToken();
                         token_user = token;
                         extracted(millis_QR, md5Enc_QR, md5Encoder);
-                        flag = false;
-                        Toast.makeText(ScanCheckOut.this, "Token: " + token, Toast.LENGTH_SHORT).show();
-
+                        if(flag == true){
+                            flag = false;
+                            postCheckOut();
+                        }
                     }
                 } else {
                     // Xử lý khi không nhận được kết quả thành công
@@ -263,5 +338,163 @@ public class ScanCheckOut extends AppCompatActivity {
             }
         });
     }
+    @Override
+    public void onStart() {
+        super.onStart();
+        instanceIRHelper.register();
+    }
 
+    @Override
+    public void onStop() {
+        instanceIRHelper.unregister();
+        super.onStop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(!instanceIRHelper.isConnected() && (instanceIRHelper.getUsbPermission() == IRHelper.UsbPermission.Unknown || instanceIRHelper.getUsbPermission()  == IRHelper.UsbPermission.Granted))
+            instanceIRHelper.HandlerPost();
+    }
+
+    @Override
+    public void onPause() {
+        if(instanceIRHelper.isConnected()) {
+            instanceIRHelper.status("disconnected");
+            instanceIRHelper.disconnect();
+        }
+        super.onPause();
+    }
+    @Override
+    public void onNewData(byte[] data) {
+        mainLooper.post(() -> {
+            instanceIRHelper.receive(data);
+        });
+    }
+
+    @Override
+    public void onRunError(Exception e) {
+        mainLooper.post(() -> {
+            instanceIRHelper.status("connection lost: " + e.getMessage());
+            disconnect();
+        });
+    }
+
+    private void disconnect() {
+        instanceIRHelper.setConnected(false);
+        controlLines.stop();
+        if(instanceIRHelper.usbIoManager != null) {
+            instanceIRHelper.usbIoManager.setListener(null);
+            instanceIRHelper.usbIoManager.stop();
+        }
+        instanceIRHelper.usbIoManager = null;
+        try {
+            instanceIRHelper.usbSerialPort.close();
+        } catch (IOException ignored) {}
+        instanceIRHelper.usbSerialPort = null;
+    }
+    class ControlLines implements IRHelper.aControlLines {
+        private static final int refreshInterval = 200; // msec
+
+        private final Runnable runnable;
+        private final ToggleButton rtsBtn, ctsBtn, dtrBtn, dsrBtn, cdBtn, riBtn;
+        private final AppCompatButton btn_clear;
+
+        ControlLines(View view) {
+            runnable = this::run; // w/o explicit Runnable, a new lambda would be created on each postDelayed, which would not be found again by removeCallbacks
+
+            rtsBtn = view.findViewById(R.id.controlLineRts);
+            ctsBtn = view.findViewById(R.id.controlLineCts);
+            dtrBtn = view.findViewById(R.id.controlLineDtr);
+            dsrBtn = view.findViewById(R.id.controlLineDsr);
+            cdBtn = view.findViewById(R.id.controlLineCd);
+            riBtn = view.findViewById(R.id.controlLineRi);
+            btn_clear = view.findViewById(R.id.clear);
+            btn_clear.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    receiveText.setText("");
+                }
+            });
+            rtsBtn.setOnClickListener(this::toggle);
+            dtrBtn.setOnClickListener(this::toggle);
+        }
+
+        public void toggle(View v) {
+            ToggleButton btn = (ToggleButton) v;
+            if (!instanceIRHelper.isConnected()) {
+                btn.setChecked(!btn.isChecked());
+                Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String ctrl = "";
+            try {
+                if (btn.equals(rtsBtn)) { ctrl = "RTS"; instanceIRHelper.usbSerialPort.setRTS(btn.isChecked()); }
+                if (btn.equals(dtrBtn)) { ctrl = "DTR"; instanceIRHelper.usbSerialPort.setDTR(btn.isChecked()); }
+            } catch (IOException e) {
+                instanceIRHelper.status("set" + ctrl + "() failed: " + e.getMessage());
+            }
+        }
+
+        public void run() {
+            if (!instanceIRHelper.isConnected())
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getControlLines();
+                rtsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RTS));
+                ctsBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CTS));
+                dtrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DTR));
+                dsrBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.DSR));
+                cdBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.CD));
+                riBtn.setChecked(controlLines.contains(UsbSerialPort.ControlLine.RI));
+                mainLooper.postDelayed(runnable, refreshInterval);
+            } catch (Exception e) {
+                instanceIRHelper.status("getControlLines() failed: " + e.getMessage() + " -> stopped control line refresh");
+            }
+        }
+
+        public void start() {
+            if (!instanceIRHelper.isConnected())
+                return;
+            try {
+                EnumSet<UsbSerialPort.ControlLine> controlLines = instanceIRHelper.usbSerialPort.getSupportedControlLines();
+                if (!controlLines.contains(UsbSerialPort.ControlLine.RTS)) rtsBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.CTS)) ctsBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.DTR)) dtrBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.DSR)) dsrBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.CD))   cdBtn.setVisibility(View.INVISIBLE);
+                if (!controlLines.contains(UsbSerialPort.ControlLine.RI))   riBtn.setVisibility(View.INVISIBLE);
+                run();
+            } catch (Exception e) {
+                Toast.makeText(getApplicationContext(), "getSupportedControlLines() failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                rtsBtn.setVisibility(View.INVISIBLE);
+                ctsBtn.setVisibility(View.INVISIBLE);
+                dtrBtn.setVisibility(View.INVISIBLE);
+                dsrBtn.setVisibility(View.INVISIBLE);
+                cdBtn.setVisibility(View.INVISIBLE);
+                cdBtn.setVisibility(View.INVISIBLE);
+                riBtn.setVisibility(View.INVISIBLE);
+            }
+        }
+
+        public void stop() {
+            mainLooper.removeCallbacks(runnable);
+            rtsBtn.setChecked(false);
+            ctsBtn.setChecked(false);
+            dtrBtn.setChecked(false);
+            dsrBtn.setChecked(false);
+            cdBtn.setChecked(false);
+            riBtn.setChecked(false);
+        }
+
+        @Override
+        public void spnRespone(SpannableStringBuilder spn) {
+            receiveText.append(spn);
+        }
+
+        @Override
+        public void spnStatus(SpannableStringBuilder spn) {
+
+        }
+    }
 }

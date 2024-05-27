@@ -2,10 +2,10 @@ package com.example.platedetect2.ScanQR;
 
 public class CheckOut {
     String licensePlate;
-    int userId;
+    String userId;
     int locationId;
 
-    public CheckOut(String licensePlate, int userId, int locationId) {
+    public CheckOut(String licensePlate, String userId, int locationId) {
         this.licensePlate = licensePlate;
         this.userId = userId;
         this.locationId = locationId;
@@ -19,11 +19,11 @@ public class CheckOut {
         this.licensePlate = licensePlate;
     }
 
-    public int getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 

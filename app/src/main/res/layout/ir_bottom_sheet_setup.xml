@@ -107,6 +107,13 @@
                 android:textColor="@android:color/secondary_text_dark"
                 android:textOff="RI"
                 android:textOn="RI" />
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/clear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="48sp"
+                android:clickable="true"
+                android:text="Clear" />
 
         </LinearLayout>
 

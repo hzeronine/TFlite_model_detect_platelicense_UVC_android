@@ -10,11 +10,15 @@ import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
+
+import com.example.platedetect2.ScanQR.CheckIn;
 import com.example.platedetect2.ScanQR.ScanCheckIn;
 
+import com.example.platedetect2.ScanQR.ScanCheckOut;
 import com.example.platedetect2.utils.DeviceListControl;
 
 
+import com.example.platedetect2.utils.IRBytesStored;
 import com.example.platedetect2.utils.NV21ToBitmap;
 import com.example.platedetect2.utils.ObjectDetectorHelper;
 import com.example.platedetect2.Dialog.ProgressHelper;
@@ -176,7 +180,10 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                         singleThreadExecutor.execute(new Runnable() {
                             @Override
                             public void run() {
-                                detectorHelper.detect(bitmap, 0);
+                                if (System.currentTimeMillis() - timeInMilliseconds >= 100){
+                                    timeInMilliseconds = System.currentTimeMillis();
+                                    detectorHelper.detect(bitmap, 0);
+                                }
                             }
                         });
                     }
@@ -208,6 +215,14 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     };
     private void callCallBack() {
     }
+
+    @Override
+    protected void onStop() {
+        mCameraHelper.closeCamera();
+        detectorHelper.clearObjectDetector();
+        super.onStop();
+    }
+
     /**
      * this is API function after detected
      */
@@ -215,10 +230,10 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
     public void onError(@NonNull String error) {
 
     }
-    boolean founded = false;
+    int founded = 0;
     String resultText = "";
-
-    String bienso  = "123456";
+    boolean isCalled = false;
+    long timeInMilliseconds = System.currentTimeMillis();
     @Override
     public void onResults(@Nullable List<Detection> results, @NonNull Bitmap image,
                           long inferenceTime, int imageHeight, int imageWidth) {
@@ -235,11 +250,17 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                     int right = (int) (boundingBox.right * scaleFactor);
                     int bottom = (int) (boundingBox.bottom * scaleFactor);
                     int adjustedLeft = left < 0 ? 0 : left;
+                    int adjustedTop = top < 0 ? 0 : top;
                     int adjustedWidth = right - adjustedLeft;
+                    int adjustedHeigt = bottom - adjustedTop;
                     Log.d("shape", image.getHeight() + ":" + image.getWidth());
-                    if (image.getHeight() < (top - bottom - top))
+
+                    if (image.getWidth() < (adjustedLeft + adjustedWidth))
                         return;
-                    Bitmap croppedBitmap = Bitmap.createBitmap(image, adjustedLeft, top, adjustedWidth, bottom - top);
+                    if (image.getHeight() < (adjustedTop + adjustedHeigt))
+                        return;
+
+                    Bitmap croppedBitmap = Bitmap.createBitmap(image, adjustedLeft, adjustedTop, adjustedWidth, adjustedHeigt);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -252,48 +273,47 @@ public class UVC_Camera_two extends AppCompatActivity implements ObjectDetectorH
                         public void onSuccess(Text text) {
                             String recognition = text.getText();
 
-                            if(recognition == null || recognition == "" || recognition.length() < 8)
+                            if(recognition == null || recognition == "" || recognition.length() < 8 || recognition.length() > 12)
                                 return;
                             recognition = recognition.trim().replace(".","").replace(" ", "");
                             Log.d("foundResult",  recognition + ":\n" + resultText + ":\n" + founded);
                             if(recognition.equals(resultText) && resultText != ""){
-                                founded = true;
-                            }else if((recognition.equals(resultText) == false || resultText == "") && founded != true){
+                                founded++;
+                            }else if((recognition.equals(resultText) == false || resultText == "") && founded < 3){
                                 resultText = recognition;
-                                founded = false;
-                                if(ProgressHelper.isDialogVisible()){
-                                    textvip.setText("");
-                                }
+                                if(founded > 0 )
+                                    founded--;
+                                textvip.setText("");
                             }
                         }
                     });
                 }else{
-                    founded = false;
+                    founded = 0;
+                    isCalled = false;
                 }
 
-                if (founded == true){
+                if (founded >= 3){
                     Log.d("foundResult", resultText.toString());
-                    if(!ProgressHelper.isDialogVisible())
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                textvip.setText(resultText);
-
-                                /////////
-                                Intent intent = new Intent(getApplicationContext(), ScanCheckIn.class);
-                                startActivity(intent);
-                                finish();
-                            }
-                        });
-
-                    }
-                else if (ProgressHelper.isDialogVisible()){
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             textvip.setText(resultText);
+                            IRBytesStored.getInstance().setLiscensePlate(resultText);
+                            /////////
+                            if(IRBytesStored.getInstance().getStatusCheck() == 0 && isCalled == false ){
+                                isCalled = true;
+                                Intent intent = new Intent(getApplicationContext(), ScanCheckIn.class);
+                                startActivity(intent);
+                                finish();
+                            } else if (IRBytesStored.getInstance().getStatusCheck() == 1&& isCalled == false) {
+                                isCalled = true;
+                                Intent intent = new Intent(getApplicationContext(), ScanCheckOut.class);
+                                startActivity(intent);
+                                finish();
+                            }
                         }
                     });
+
                 }
             }
         }).start();

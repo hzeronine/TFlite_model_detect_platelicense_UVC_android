@@ -9,7 +9,11 @@ import java.util.ArrayList;
 public class DeviceListControl {
     public static DeviceListControl instance;
     private ArrayList<ModelDevice> CameraDevice;
+    private boolean Camera_isSet = false;
     private ArrayList<ModelDevice> ArduinoDevice;
+    private boolean Arduino_isSet = false;
+
+
 
     public static DeviceListControl getInstance(){
         if(instance == null)
@@ -25,6 +29,8 @@ public class DeviceListControl {
             ArduinoDevice.add(dataDevice);
     }
     public ArrayList<ModelDevice> getCameraDevice() {
+        if(CameraDevice == null)
+            CameraDevice = new ArrayList<>();
         return CameraDevice;
     }
 
@@ -33,6 +39,8 @@ public class DeviceListControl {
     }
 
     public ArrayList<ModelDevice> getArduinoDevice() {
+        if(ArduinoDevice == null)
+            ArduinoDevice = new ArrayList<>();
         return ArduinoDevice;
     }
 
@@ -60,6 +68,21 @@ public class DeviceListControl {
         }
         if(!FindCameraDevice(modelData.vendorId))
             CameraDevice.add(modelData);
+    }
+    public boolean Camera_isSet() {
+        return Camera_isSet;
+    }
+
+    public void setCamera_isSet(boolean camera_isSet) {
+        Camera_isSet = camera_isSet;
+    }
+
+    public boolean Arduino_isSet() {
+        return Arduino_isSet;
+    }
+
+    public void setArduino_isSet(boolean arduino_isSet) {
+        Arduino_isSet = arduino_isSet;
     }
     public static class ModelDevice {
         UsbDevice device;

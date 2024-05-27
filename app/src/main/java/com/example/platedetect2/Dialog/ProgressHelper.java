@@ -81,6 +81,59 @@ public class ProgressHelper {
         }
     }
 
+    public static void showSuccessDialog(Context context, String message) {
+        if(dialog == null){
+            int llPadding = 30;
+            LinearLayout ll = new LinearLayout(context);
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            ll.setPadding(llPadding, llPadding, llPadding, llPadding);
+            ll.setBackgroundResource(R.color.transparent);
+            ll.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams llParam = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            llParam.gravity = Gravity.CENTER;
+            ll.setLayoutParams(llParam);
+
+            ProgressBar progressBar = new ProgressBar(context);
+            progressBar.setIndeterminate(true);
+            progressBar.setPadding(0, 0, llPadding, 0);
+            Drawable progressDrawable = progressBar.getIndeterminateDrawable();
+            progressDrawable.setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_IN);
+            progressBar.setIndeterminateDrawable(progressDrawable);
+            progressBar.setLayoutParams(llParam);
+
+            llParam = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            llParam.gravity = Gravity.CENTER;
+            TextView tvText = new TextView(context);
+            tvText.setText(message);
+            tvText.setTextColor(Color.parseColor("#000000"));
+            tvText.setTextSize(20);
+            tvText.setLayoutParams(llParam);
+
+            ll.addView(progressBar);
+            ll.addView(tvText);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.myDialog);
+            builder.setCancelable(false);
+            builder.setView(ll);
+
+            dialog = builder.create();
+
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.background_transparent);
+            dialog.show();
+            Window window = dialog.getWindow();
+            if (window != null) {
+                WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+                layoutParams.copyFrom(dialog.getWindow().getAttributes());
+                layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT;
+                layoutParams.height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                dialog.getWindow().setAttributes(layoutParams);
+            }
+        }
+    }
+
     private static Bitmap CreateQRBitmap(String message) {
         try {
             BarcodeEncoder barcodeEncoder = new BarcodeEncoder();

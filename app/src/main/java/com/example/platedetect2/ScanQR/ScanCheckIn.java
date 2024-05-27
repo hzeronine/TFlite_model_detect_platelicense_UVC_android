@@ -31,11 +31,13 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.platedetect2.Dialog.ProgressHelper;
 import com.example.platedetect2.R;
 
 import com.example.platedetect2.ScanQR.ApiService;
 import com.example.platedetect2.ScanQR.MD5Encoder;
 import com.example.platedetect2.ScanQR.TokenResponse;
+import com.example.platedetect2.UVC_Camera_two;
 import com.example.platedetect2.utils.IRBytesStored;
 import com.example.platedetect2.utils.IRHelper;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -47,6 +49,8 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
+
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -94,6 +98,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
 
         qrCodeTxt = findViewById(R.id.qrCideTxt);
         previewView = findViewById(R.id.previewView);
+        ((TextView)findViewById(R.id.Location)).setText("Cơ sở hiện tại: " + IRBytesStored.getInstance().getEmailLocation().getLocationName());
 
         // checking for camera permissions
         if (ContextCompat.checkSelfPermission(ScanCheckIn.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -109,21 +114,11 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             receiveBtn.setVisibility(View.GONE);
         }
 
-        sendBtn.setOnClickListener(v ->{
+         sendBtn.setOnClickListener(v ->{
             instanceIRHelper.Command = sendText.getText().toString();
             instanceIRHelper.send(instanceIRHelper.Command);
         });
-        Intent intent = getIntent();
-        if (intent != null) {
-            String userEmail = intent.getStringExtra("user_email");
-            int locationId = intent.getIntExtra("location_id", -1);
-            String locationName = intent.getStringExtra("location_name");
 
-            // Sử dụng dữ liệu nhận được
-            Log.d("MainActivity", "User Email: " + userEmail);
-            Log.d("MainActivity", "Location ID: " + locationId);
-            Log.d("MainActivity", "Location Name: " + locationName);
-        }
     }
 
     private void init() {
@@ -184,7 +179,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             }
         });
         Preview preview = new Preview.Builder().build();
-        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_BACK).build();
+        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing (CameraSelector.LENS_FACING_FRONT).build();
         preview.setSurfaceProvider (previewView.getSurfaceProvider());
         processCameraProvider.bindToLifecycle (this, cameraSelector, imageAnalysis, preview);
     }
@@ -217,7 +212,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             Log.d("Test", "Mã QR còn hạn sử dụng");
             flag = true;
             callApiGetToken(uid_QR);
-            postCheckIn();
+
         } else {
             Log.d("Test", "Mã QR đã hết hạn sử dụng");
             qrCodeTxt.setText("Mã QR đã hết hạn sử dụng");
@@ -238,6 +233,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             qrCodeTxt.setText("Xác nhận khóa thất bại");
         }
     }
+    boolean flag_close = false;
 
     public static String[] splitString(String input) {
         return input.split(":");
@@ -252,8 +248,8 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
 
         // Tạo một instance của ApiService từ Retrofit
         ApiService apiService = retrofit.create(ApiService.class);
-        String licensePlate = "AAAA34";
-        int user_id = 14;
+        String licensePlate = IRBytesStored.getInstance().getLiscensePlate();;
+        String user_id = uid_QR;
 
         CheckIn requestBody = new CheckIn(licensePlate, user_id);
         Call<CheckIn> call = apiService.postCheckIn(requestBody);
@@ -261,7 +257,51 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
         call.enqueue(new Callback<CheckIn>() {
             @Override
             public void onResponse(Call<CheckIn> call, Response<CheckIn> response) {
-                Toast.makeText(ScanCheckIn.this, "Thafnh cong", Toast.LENGTH_SHORT).show();
+                mainLooper.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(flag_close == true) {
+                            return;
+                        }
+                        flag_close = true;
+                        //Toast.makeText(getApplicationContext(), response.body()+"",Toast.LENGTH_SHORT).show();
+                        int code = response.code();
+                        if(code >= 200 && code < 300) {
+                            if(!ProgressHelper.isDialogVisible()){
+                                ProgressHelper.showSuccessDialog(ScanCheckIn.this,"Thành Công");
+                                instanceIRHelper.Command = "OpenBarrier";
+                                instanceIRHelper.send(instanceIRHelper.Command);
+                                mainLooper.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if(ProgressHelper.isDialogVisible()){
+                                            ProgressHelper.dismissDialog();
+                                            instanceIRHelper.Command = "CloseBarrier";
+                                            instanceIRHelper.send(instanceIRHelper.Command);
+
+                                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                                            startActivity(intent);
+                                            finish();
+                                        }
+                                    }
+                                }, 5000);
+                            }
+                        } else if (code >= 400 && code < 500) {
+                            Toast.makeText(ScanCheckIn.this, "Xe này đã check in trên server", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                            startActivity(intent);
+                            finish();
+                        } else if (code >= 500) {
+                            Toast.makeText(ScanCheckIn.this, "Không thể kết nối trên server", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
+                            startActivity(intent);
+                            finish();
+                        }
+
+                    }
+                });
+
+
             }
 
             @Override
@@ -288,13 +328,16 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             public void onResponse(Call<TokenResponse> call, Response<TokenResponse> response) {
                 if (response.isSuccessful()) {
                     // Xử lý kết quả thành công
+                    response.code();
                     TokenResponse tokenResponse = response.body();
                     if (tokenResponse != null) {
                         String token = tokenResponse.getToken();
                         token_user = token;
                         extracted(millis_QR, md5Enc_QR, md5Encoder);
-                        flag = false;
-                        Toast.makeText(ScanCheckIn.this, "Token: " + token, Toast.LENGTH_SHORT).show();
+                        if(flag == true){
+                            flag = false;
+                            postCheckIn();
+                        }
 
                     }
                 } else {
@@ -373,6 +416,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
 
         private final Runnable runnable;
         private final ToggleButton rtsBtn, ctsBtn, dtrBtn, dsrBtn, cdBtn, riBtn;
+        private final AppCompatButton btn_clear;
 
         ControlLines(View view) {
             runnable = this::run; // w/o explicit Runnable, a new lambda would be created on each postDelayed, which would not be found again by removeCallbacks
@@ -383,6 +427,13 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             dsrBtn = view.findViewById(R.id.controlLineDsr);
             cdBtn = view.findViewById(R.id.controlLineCd);
             riBtn = view.findViewById(R.id.controlLineRi);
+            btn_clear = view.findViewById(R.id.clear);
+            btn_clear.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    receiveText.setText("");
+                }
+            });
             rtsBtn.setOnClickListener(this::toggle);
             dtrBtn.setOnClickListener(this::toggle);
         }
@@ -457,6 +508,11 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
         @Override
         public void spnRespone(SpannableStringBuilder spn) {
             receiveText.append(spn);
+        }
+
+        @Override
+        public void spnStatus(SpannableStringBuilder spn) {
+
         }
     }
 }

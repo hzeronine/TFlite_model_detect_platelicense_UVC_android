@@ -112,7 +112,7 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
         View sendBtn = view.findViewById(R.id.send_btn);
         sendBtn.setOnClickListener(v ->{
             instanceIRHelper.Command = sendText.getText().toString();
-            send(instanceIRHelper.Command);
+            instanceIRHelper.send(instanceIRHelper.Command);
         });
         View receiveBtn = view.findViewById(R.id.receive_btn);
         controlLines = new ControlLines(view);
@@ -197,27 +197,6 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
         instanceIRHelper.usbSerialPort = null;
     }
 
-    private void send(String str) {
-        if(!instanceIRHelper.isConnected()) {
-            Toast.makeText(getActivity(), "not connected", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            if(instanceIRHelper.Command == "DataReceive"){
-                byte[] data = instance.getIR_array_data();
-                instanceIRHelper.usbSerialPort.write(data, instanceIRHelper.WRITE_WAIT_MILLIS);
-            }
-            byte[] data = (str + '\n').getBytes();
-            SpannableStringBuilder spn = new SpannableStringBuilder();
-            spn.append("send " + data.length + " bytes\n");
-            spn.append(HexDump.dumpHexString(data)).append("\n");
-            spn.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            receiveText.append(spn);
-            instanceIRHelper.usbSerialPort.write(data,instanceIRHelper. WRITE_WAIT_MILLIS);
-        } catch (Exception e) {
-            onRunError(e);
-        }
-    }
 
     private void read() {
         if(!instanceIRHelper.isConnected()) {
@@ -326,6 +305,11 @@ public class ArduinoConnectionActivity extends Fragment implements SerialInputOu
         @Override
         public void spnRespone(SpannableStringBuilder spn) {
             receiveText.append(spn);
+        }
+
+        @Override
+        public void spnStatus(SpannableStringBuilder spn) {
+
         }
     }
 }

@@ -9,7 +9,9 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.platedetect2.MainActivity;
 import com.example.platedetect2.R;
+import com.example.platedetect2.utils.IRBytesStored;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -88,11 +90,9 @@ public class Login extends AppCompatActivity {
                                         // Địa chỉ email hợp lệ, đăng nhập thành công
                                         saveLoginSession(account.getId(), account.getEmail()); // Lưu thông tin phiên đăng nhập vào SharedPreferences
                                         Log.d("Test: ", account.getId() + "acc: " + account.getEmail());
-                                        Intent intent = new Intent(Login.this, ScanCheckIn.class);
-                                        // Gửi dữ liệu qua MainActivity
-                                        intent.putExtra("user_email", emailLocation.getEmail());
-                                        intent.putExtra("location_id", emailLocation.getLocationId());
-                                        intent.putExtra("location_name", emailLocation.getLocationName());
+                                        IRBytesStored.getInstance().setEmailLocation(emailLocation);
+
+                                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                                         startActivity(intent);
                                     }
                                 }

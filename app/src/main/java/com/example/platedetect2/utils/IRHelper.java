@@ -50,7 +50,7 @@ public class IRHelper {
     private int deviceId, portNum;
     public boolean withIoManager = true;
     private UsbPermission usbPermission = UsbPermission.Unknown;
-    final private int  baudRate = 19600;
+    final private int  baudRate = 19200;
 
     public void setConnected(boolean connected) {
         this.connected = connected;
@@ -161,7 +161,8 @@ public class IRHelper {
             }
             status("connected");
             connected = true;
-            controlLines.start();
+            if(controlLines != null)
+                controlLines.start();
         } catch (Exception e) {
             status("connection failed: " + e.getMessage());
             disconnect();
@@ -170,7 +171,8 @@ public class IRHelper {
 
     public void disconnect() {
         connected = false;
-        controlLines.stop();
+        if(controlLines != null)
+            controlLines.stop();
         if(usbIoManager != null) {
             usbIoManager.setListener(null);
             usbIoManager.stop();
@@ -188,8 +190,11 @@ public class IRHelper {
             return;
         }
         try {
-            if(Command == "DataReceive"){
-                byte[] data = instanceIRBytesStored.getIR_array_data();
+            if(Command == "OpenDataReceive"){
+                byte[] data = instanceIRBytesStored.getIR_array_OpenData();
+                usbSerialPort.write(data, WRITE_WAIT_MILLIS);
+            } else if(Command == "CloseDataReceive"){
+                byte[] data = instanceIRBytesStored.getIR_array_CloseData();
                 usbSerialPort.write(data, WRITE_WAIT_MILLIS);
             }
             byte[] data = (str + '\n').getBytes();
@@ -197,7 +202,8 @@ public class IRHelper {
             spn.append("send " + data.length + " bytes\n");
             spn.append(HexDump.dumpHexString(data)).append("\n");
             spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            controlLines.spnRespone(spn);
+            if(controlLines != null)
+                controlLines.spnRespone(spn);
 //            receiveText.append(spn);
             usbSerialPort.write(data, WRITE_WAIT_MILLIS);
         } catch (Exception e) {
@@ -205,7 +211,7 @@ public class IRHelper {
         }
     }
 
-    private void read() {
+    public void read() {
         if(!connected) {
             Toast.makeText(mContext, "not connected", Toast.LENGTH_SHORT).show();
             return;
@@ -225,18 +231,24 @@ public class IRHelper {
     public void receive(byte[] data) {
         SpannableStringBuilder spn = new SpannableStringBuilder();
         spn.append("receive " + data.length + " bytes\n");
-        if(Command == "Stored")
-            instanceIRBytesStored.setIRData(data);
+        if(Command == "OpenStored")
+            instanceIRBytesStored.setIR_OpenData(data);
+        if(Command == "CloseStored")
+            instanceIRBytesStored.setIR_CloseData(data);
         if(data.length > 0)
             spn.append(HexDump.dumpHexString(data)).append("\n");
         spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorRecieveText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        controlLines.spnRespone(spn);
+        if(controlLines != null)
+            controlLines.spnRespone(spn);
     }
 
     public void status(String str) {
         SpannableStringBuilder spn = new SpannableStringBuilder(str+'\n');
         spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorStatusText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        controlLines.spnRespone(spn);
+        if(controlLines != null){
+            controlLines.spnRespone(spn);
+            controlLines.spnStatus(spn);
+        }
     }
 
     public interface aControlLines{
@@ -245,5 +257,6 @@ public class IRHelper {
         void start();
         void stop();
         void spnRespone(SpannableStringBuilder spn);
+        void spnStatus(SpannableStringBuilder spn);
     }
 }

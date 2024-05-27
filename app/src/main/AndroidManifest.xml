@@ -40,13 +40,13 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Base.Theme.PlateDetect2"
         tools:targetApi="31">
         <activity
             android:name=".ScanQR.ScanCheckOut"
             android:exported="false" />
         <activity
-            android:name=".ScanQR.Login"
+            android:name=".MainActivity"
             android:exported="false" />
         <activity
             android:name=".ScanQR.ScanCheckIn"
@@ -55,7 +55,7 @@
             android:name=".UVC_Camera_two"
             android:exported="true" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ScanQR.Login"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
