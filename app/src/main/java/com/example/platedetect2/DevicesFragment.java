@@ -202,8 +202,8 @@ public class DevicesFragment extends Fragment {
         byte[] IRClosedata = mMySharedPreferences.getIRValue("CloseIR");
         Camera_VeronID = mMySharedPreferences.getIntValue("CameraVeronID");
         Arduino_VeronID = mMySharedPreferences.getIntValue("ArduinoVeronID");
-        Toast.makeText(getActivity(),Camera_VeronID +"" , Toast.LENGTH_SHORT).show();
-        Toast.makeText(getActivity(),Arduino_VeronID +"" , Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getActivity(),Camera_VeronID +"" , Toast.LENGTH_SHORT).show();
+//        Toast.makeText(getActivity(),Arduino_VeronID +"" , Toast.LENGTH_SHORT).show();
 //        if(IROpen_data != null){
 ////            storedInstance.setIR_OpenData(IROpen_data);
 //        }

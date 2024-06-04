@@ -470,7 +470,7 @@ public class IR_setup_fragment extends Fragment implements SerialInputOutputMana
 
         @Override
         public void spnRespone(SpannableStringBuilder spn) {
-            Toast.makeText(getActivity(),spn+" " +instanceIRHelper.Command, Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getActivity(),spn+" " +instanceIRHelper.Command, Toast.LENGTH_SHORT).show();
 
             receiveText.append(spn);
         }

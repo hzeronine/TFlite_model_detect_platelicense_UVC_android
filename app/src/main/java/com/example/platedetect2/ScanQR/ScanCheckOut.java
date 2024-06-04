@@ -1,5 +1,7 @@
 package com.example.platedetect2.ScanQR;
 
+import static com.example.platedetect2.FcmNotificationSender.Post_Calling;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
@@ -261,6 +263,8 @@ public class ScanCheckOut extends AppCompatActivity implements SerialInputOutput
                                             instanceIRHelper.Command = "CloseBarrier";
                                             instanceIRHelper.send(instanceIRHelper.Command);
 
+                                            sendNotification();
+
                                             Intent intent = new Intent(getApplicationContext(), UVC_Camera_two.class);
                                             startActivity(intent);
                                             finish();
@@ -295,7 +299,15 @@ public class ScanCheckOut extends AppCompatActivity implements SerialInputOutput
         });
 
     }
+    private void sendNotification(){
+        String fcmServerKey = "AAAA-aEDMr4:APA91bFkulQb-yKqZHCdfMMvTnAWHu6eHSaFsPTkTiM4CN4nux4zGjFOpEnk_NXESGI3i98JmZX0AJj7tqyFsxmhhOU5AP4v0fHmxVNNA6olETuUvwhpCg6ip_0NT3kXa-eWUFeC0rP_";
+        String receiverToken = "clFBYzo6TZOpCIgXAEadZF:APA91bHzfK1gnfrKwUlFT5nhuIY8RO94EEB1juOnyFyWJdY1vcaOMcgAPrg8H8qrRbxjexyB6W4YKqL1DjMqL-mA-2sjzL0aY3Xfjiv4iPEe0F838JcB8N_GTpGb-GWTefWoExNUeO4J";
+        String notificationTitle = "Thông báo";
+        String notificationBody = "Đã thanh toán tiền -2.000đ";
 
+        // Gửi thông báo
+        Post_Calling(fcmServerKey, receiverToken,notificationBody, notificationTitle);
+    }
     private void callApiGetToken(String userId) {
         // Khởi tạo Retrofit
         Retrofit retrofit = new Retrofit.Builder()

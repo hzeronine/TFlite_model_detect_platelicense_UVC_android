@@ -1,5 +1,7 @@
 package com.example.platedetect2.ScanQR;
 
+import static com.example.platedetect2.FcmNotificationSender.Post_Calling;
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -84,6 +86,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
     View sendBtn;
     TextView sendText;
     View BottomSheetView;
+    String location = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -99,7 +102,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
         qrCodeTxt = findViewById(R.id.qrCideTxt);
         previewView = findViewById(R.id.previewView);
         ((TextView)findViewById(R.id.Location)).setText("Cơ sở hiện tại: " + IRBytesStored.getInstance().getEmailLocation().getLocationName());
-
+        location =  IRBytesStored.getInstance().getEmailLocation().getLocationName().toString();
         // checking for camera permissions
         if (ContextCompat.checkSelfPermission(ScanCheckIn.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             init();
@@ -275,6 +278,7 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
                                     @Override
                                     public void run() {
                                         if(ProgressHelper.isDialogVisible()){
+                                            sendNotification();
                                             ProgressHelper.dismissDialog();
                                             instanceIRHelper.Command = "CloseBarrier";
                                             instanceIRHelper.send(instanceIRHelper.Command);
@@ -310,6 +314,15 @@ public class ScanCheckIn extends AppCompatActivity implements SerialInputOutputM
             }
         });
 
+    }
+    private void sendNotification(){
+        String fcmServerKey = "AAAA-aEDMr4:APA91bFkulQb-yKqZHCdfMMvTnAWHu6eHSaFsPTkTiM4CN4nux4zGjFOpEnk_NXESGI3i98JmZX0AJj7tqyFsxmhhOU5AP4v0fHmxVNNA6olETuUvwhpCg6ip_0NT3kXa-eWUFeC0rP_";
+        String receiverToken = "clFBYzo6TZOpCIgXAEadZF:APA91bHzfK1gnfrKwUlFT5nhuIY8RO94EEB1juOnyFyWJdY1vcaOMcgAPrg8H8qrRbxjexyB6W4YKqL1DjMqL-mA-2sjzL0aY3Xfjiv4iPEe0F838JcB8N_GTpGb-GWTefWoExNUeO4J";
+        String notificationTitle = "Thông báo";
+        String notificationBody = "Xe của bạn hiện ở cơ sở " + location;
+
+        // Gửi thông báo
+        Post_Calling(fcmServerKey, receiverToken,notificationBody, notificationTitle);
     }
 
     private void callApiGetToken(String userId) {
